@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Helios.Launcher/Helios.Launcher.csproj" />
+    <Project Path="src/Helios.Library/Helios.Library.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Helios.Library.Tests/Helios.Library.Tests.csproj" />
+  </Folder>
+</Solution>

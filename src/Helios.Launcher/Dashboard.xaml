@@ -1,0 +1,180 @@
+<Page x:Class="Helios_Launcher.Dashboard"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:local="using:Helios_Launcher">
+    <Page.Resources>
+        <Style x:Key="NavButton" TargetType="Button">
+            <Setter Property="Padding" Value="14,8" />
+            <Setter Property="MinHeight" Value="42" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+        </Style>
+        <DataTemplate x:Key="GameTile" x:DataType="local:Tile">
+            <Button Width="226" Height="159" Padding="0" HorizontalContentAlignment="Stretch"
+                    VerticalContentAlignment="Stretch" Tag="{x:Bind Game}" Click="TileClicked"
+                    AutomationProperties.Name="{x:Bind AccessibleName}">
+                <Grid>
+                    <Grid.RowDefinitions><RowDefinition Height="100" /><RowDefinition Height="*" /></Grid.RowDefinitions>
+                    <Grid Background="{ThemeResource HeliosArtwork}">
+                        <TextBlock Text="{x:Bind Initials}" FontSize="29" FontWeight="Bold" Foreground="{ThemeResource HeliosAccent}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        <Image Source="{x:Bind Image}" Stretch="UniformToFill" />
+                    </Grid>
+                    <StackPanel Grid.Row="1" Padding="10,6" Spacing="2">
+                        <TextBlock Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" FontWeight="SemiBold" />
+                        <TextBlock Text="{x:Bind Subtitle}" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    </StackPanel>
+                </Grid>
+            </Button>
+        </DataTemplate>
+    </Page.Resources>
+    <Grid x:Name="Root" Background="{ThemeResource HeliosBase}" PreviewKeyDown="RootKeyDown" SizeChanged="RootResized"
+          XYFocusKeyboardNavigation="Enabled">
+        <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+        <Grid x:Name="Header" Padding="32,15" ColumnSpacing="12" Background="{ThemeResource HeliosPanel}">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+            <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                <Border Width="30" Height="30" CornerRadius="7" Background="{ThemeResource HeliosAccent}">
+                    <TextBlock Text="✦" FontSize="19" FontWeight="Bold" Foreground="{ThemeResource HeliosOnAccent}"
+                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                </Border>
+                <TextBlock x:Name="Brand" Text="HELIOS" FontSize="18" FontWeight="Bold" CharacterSpacing="160" VerticalAlignment="Center" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+                <Button x:Name="HomeTab" Content="Home" Style="{StaticResource NavButton}" Click="HomeClicked" />
+                <Button x:Name="LibraryTab" Content="Library" Style="{StaticResource NavButton}" Click="LibraryClicked" />
+                <Button x:Name="SettingsTab" Content="Settings" Style="{StaticResource NavButton}" Click="SettingsClicked" />
+            </StackPanel>
+            <Button Grid.Column="2" HorizontalAlignment="Right" Style="{StaticResource NavButton}"
+                    Click="CloseClicked" AutomationProperties.Name="Exit Helios">
+                <FontIcon Glyph="&#xE8BB;" FontSize="15" />
+            </Button>
+        </Grid>
+        <ScrollViewer x:Name="ContentScroll" Grid.Row="1" HorizontalScrollBarVisibility="Disabled">
+            <Grid x:Name="Body" Padding="32,22,32,28">
+                <StackPanel x:Name="HomePane" Spacing="22">
+                    <Border Height="276" CornerRadius="16" Background="{ThemeResource HeliosArtwork}">
+                        <Grid>
+                            <Ellipse Width="218" Height="218" HorizontalAlignment="Right" Margin="0,0,48,0"
+                                     Stroke="{ThemeResource HeliosAccent}" StrokeThickness="1" Opacity=".32" />
+                            <Ellipse Width="162" Height="162" HorizontalAlignment="Right" Margin="0,0,76,0"
+                                     Stroke="{ThemeResource HeliosAccent}" StrokeThickness="1" Opacity=".45" />
+                            <TextBlock Text="✦" FontSize="100" HorizontalAlignment="Right" Margin="0,0,110,0"
+                                       VerticalAlignment="Center" Foreground="{ThemeResource HeliosAccent}" Opacity=".65" />
+                            <Image x:Name="HeroImage" Stretch="UniformToFill" />
+                            <Rectangle x:Name="HeroFade" Visibility="Collapsed">
+                                <Rectangle.Fill>
+                                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                        <GradientStop Color="#FA101218" Offset="0" />
+                                        <GradientStop Color="#EA101218" Offset=".40" />
+                                        <GradientStop Color="#40101218" Offset="1" />
+                                    </LinearGradientBrush>
+                                </Rectangle.Fill>
+                            </Rectangle>
+                            <StackPanel Margin="28,16" VerticalAlignment="Center" Spacing="8" MaxWidth="600" HorizontalAlignment="Left">
+                                <TextBlock x:Name="HeroSource" Foreground="{ThemeResource HeliosAccent}" Text="HELIOS LIBRARY"
+                                           FontSize="13" FontWeight="SemiBold" CharacterSpacing="140" />
+                                <TextBlock x:Name="HeroTitle" Text="Your games" FontSize="44" FontWeight="Bold"
+                                           TextWrapping="WrapWholeWords" MaxLines="2" TextTrimming="CharacterEllipsis" />
+                                <TextBlock x:Name="HeroDescription" Text="Add a game or import your installed library."
+                                           FontSize="16" TextWrapping="Wrap" />
+                                <Button x:Name="HeroAction" Content="Browse library" Margin="0,10,0,0" Padding="22,9"
+                                        MinHeight="44" Style="{StaticResource AccentButtonStyle}" Click="HeroClicked" />
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                    <StackPanel x:Name="FavoritesRow" Spacing="9" Visibility="Collapsed">
+                        <TextBlock Text="Favorites" FontSize="23" FontWeight="SemiBold" />
+                        <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                            <ItemsRepeater x:Name="Favorites" ItemTemplate="{StaticResource GameTile}">
+                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="12" /></ItemsRepeater.Layout>
+                            </ItemsRepeater>
+                        </ScrollViewer>
+                    </StackPanel>
+                    <StackPanel x:Name="RecentsRow" Spacing="9" Visibility="Collapsed">
+                        <TextBlock Text="Recently launched" FontSize="23" FontWeight="SemiBold" />
+                        <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Auto" VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled">
+                            <ItemsRepeater x:Name="Recents" ItemTemplate="{StaticResource GameTile}">
+                                <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="12" /></ItemsRepeater.Layout>
+                            </ItemsRepeater>
+                        </ScrollViewer>
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel x:Name="LibraryPane" Spacing="13" Visibility="Collapsed">
+                    <TextBlock Text="Library" FontSize="36" FontWeight="Bold" />
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                        <TextBox x:Name="Search" PlaceholderText="Find a game" TextChanged="SearchChanged" AutomationProperties.Name="Search the game library" />
+                        <Button x:Name="SearchKeys" Grid.Column="1" Content="Keyboard" Click="SearchKeysClicked" />
+                    </Grid>
+                    <StackPanel x:Name="KeyboardPane" Spacing="8" Visibility="Collapsed">
+                        <ItemsRepeater x:Name="SearchKeyboard">
+                            <ItemsRepeater.Layout>
+                                <UniformGridLayout MinItemWidth="48" MinItemHeight="39" MinColumnSpacing="4" MinRowSpacing="4" MaximumRowsOrColumns="13" />
+                            </ItemsRepeater.Layout>
+                        </ItemsRepeater>
+                        <Button Content="Done" Click="DoneTyping" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Button x:Name="Filter" Content="All games" Click="FilterClicked" />
+                        <Button x:Name="RefreshButton" Content="Refresh" Click="RefreshClicked" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Button x:Name="AddButton" Content="Add file" Click="AddFileClicked" />
+                        <Button x:Name="AddWindowsButton" Content="Add installed app" Click="AddWindowsClicked" />
+                    </StackPanel>
+                    <TextBlock x:Name="EmptyLibrary" Text="No games yet. Add a game or refresh the library."
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <ItemsRepeater x:Name="GameGrid" ItemTemplate="{StaticResource GameTile}">
+                        <ItemsRepeater.Layout>
+                            <UniformGridLayout MinItemWidth="226" MinItemHeight="159" MinColumnSpacing="12" MinRowSpacing="12" />
+                        </ItemsRepeater.Layout>
+                    </ItemsRepeater>
+                </StackPanel>
+                <StackPanel x:Name="DetailsPane" Spacing="12" Visibility="Collapsed">
+                    <Button x:Name="BackButton" Content="Back" Click="BackClicked" />
+                    <Image x:Name="DetailsImage" Height="222" Stretch="UniformToFill" />
+                    <TextBlock x:Name="DetailsTitle" FontSize="40" FontWeight="Bold" TextWrapping="Wrap" />
+                    <TextBlock x:Name="DetailsMeta" FontSize="15" Foreground="{ThemeResource TextFillColorSecondaryBrush}" TextWrapping="Wrap" />
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Button x:Name="PlayButton" Content="Play" Style="{StaticResource AccentButtonStyle}" Click="PlayClicked" />
+                        <Button x:Name="FavoriteButton" Content="Add to favorites" Click="FavoriteClicked" />
+                        <Button x:Name="RemoveButton" Content="Remove" Click="RemoveClicked" />
+                    </StackPanel>
+                </StackPanel>
+                <StackPanel x:Name="SettingsPane" Spacing="14" Visibility="Collapsed" HorizontalAlignment="Left" MaxWidth="660">
+                    <TextBlock Text="Settings" FontSize="36" FontWeight="Bold" />
+                    <ToggleSwitch x:Name="FullScreenToggle" Header="Full screen" Toggled="FullScreenChanged" />
+                    <ToggleSwitch x:Name="StartupToggle" Header="Start Helios at sign-in" Toggled="StartupChanged" />
+                    <TextBlock x:Name="StartupMessage" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button Content="Windows startup settings" Click="OpenStartupClicked" />
+                    <TextBlock Text="Xbox mode" FontSize="22" FontWeight="SemiBold" Margin="0,8,0,0" />
+                    <TextBlock x:Name="ModeMessage" TextWrapping="Wrap" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <Button Content="Open Xbox mode settings" Click="OpenModeClicked" />
+                    <Button Content="Exit Helios" Click="CloseClicked" />
+                </StackPanel>
+                <StackPanel x:Name="PickerPane" Spacing="10" Visibility="Collapsed">
+                    <Button Content="Back" Click="BackClicked" />
+                    <TextBlock Text="Add an installed Windows app" FontSize="29" FontWeight="Bold" TextWrapping="Wrap" />
+                    <ListView x:Name="WindowsPicker" SelectionMode="None" MaxHeight="440">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="local:Tile">
+                                <Button Tag="{x:Bind Game}" Content="{x:Bind Title}" Click="WindowsAppClicked"
+                                        HorizontalAlignment="Stretch" HorizontalContentAlignment="Left" MinHeight="42" />
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+        <Grid x:Name="Footer" Grid.Row="2" Padding="32,9" Background="{ThemeResource HeliosPanel}" ColumnSpacing="12">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+            <TextBlock x:Name="Status" Text="Loading library…" VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                       AutomationProperties.LiveSetting="Polite" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+            <TextBlock x:Name="Hints" Grid.Column="1" Text="A  Select     B  Back     LB / RB  Switch tab" FontSize="12"
+                       VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+        </Grid>
+    </Grid>
+</Page>
