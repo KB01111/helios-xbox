@@ -35,79 +35,86 @@ public sealed partial class Dashboard
         }
     }
 
+    // One small handler per controller action keeps each path flat and easy to test by hand.
     private void HandleController(ControllerAction action)
     {
-        if (action == ControllerAction.Back)
+        Action handler = action switch
         {
-            Back();
-            return;
-        }
-        if (action is ControllerAction.PreviousTab or ControllerAction.NextTab)
-        {
-            Screen[] tabs = [Screen.Home, Screen.Library, Screen.Settings];
-            int current = _screen switch { Screen.Home => 0, Screen.Settings => 2, _ => 1 };
-            Navigate(tabs[(current + (action == ControllerAction.NextTab ? 1 : 2)) % tabs.Length]);
-            return;
-        }
-        switch (action)
-        {
-            case ControllerAction.Menu:
-                Navigate(Screen.Settings);
-                return;
-            case ControllerAction.Search:
-                if (_screen != Screen.Library)
-                    Navigate(Screen.Library);
-                DispatcherQueue.TryEnqueue(ShowKeyboard);
-                return;
-            case ControllerAction.Favorite:
-                ToggleFavoriteFromFocus();
-                return;
-            case ControllerAction.PreviousFilter or ControllerAction.NextFilter:
-                if (_screen == Screen.Library)
-                {
-                    SetFilter(LibraryViews.Cycle(_filter, action == ControllerAction.NextFilter ? 1 : -1));
-                    DispatcherQueue.TryEnqueue(RestoreFocus);
-                }
-                return;
-        }
-        if (action == ControllerAction.Confirm)
-        {
-            switch (FocusManager.GetFocusedElement(XamlRoot))
-            {
-                case TextBox text when text == Search:
-                    ShowKeyboard();
-                    break;
-                case ToggleSwitch toggle when toggle.IsEnabled:
-                    toggle.IsOn = !toggle.IsOn;
-                    break;
-                case Button button when button.IsEnabled:
-                    var peer = FrameworkElementAutomationPeer.CreatePeerForElement(button);
-                    if (peer?.GetPattern(PatternInterface.Invoke) is IInvokeProvider invoker)
-                        invoker.Invoke();
-                    break;
-                default:
-                    RestoreFocus();
-                    break;
-            }
-            return;
-        }
-
-        var direction = action switch
-        {
-            ControllerAction.Up => FocusNavigationDirection.Up,
-            ControllerAction.Down => FocusNavigationDirection.Down,
-            ControllerAction.Left => FocusNavigationDirection.Left,
-            _ => FocusNavigationDirection.Right,
+            ControllerAction.Back => Back,
+            ControllerAction.PreviousTab => () => CycleTab(-1),
+            ControllerAction.NextTab => () => CycleTab(1),
+            ControllerAction.Menu => () => Navigate(Screen.Settings),
+            ControllerAction.Search => OpenSearch,
+            ControllerAction.Favorite => ToggleFavoriteFromFocus,
+            ControllerAction.PreviousFilter => () => CycleFilter(-1),
+            ControllerAction.NextFilter => () => CycleFilter(1),
+            ControllerAction.Confirm => ConfirmFocused,
+            ControllerAction.Up => () => MoveFocus(FocusNavigationDirection.Up),
+            ControllerAction.Down => () => MoveFocus(FocusNavigationDirection.Down),
+            ControllerAction.Left => () => MoveFocus(FocusNavigationDirection.Left),
+            _ => () => MoveFocus(FocusNavigationDirection.Right),
         };
-        if (FocusManager.TryMoveFocus(direction, new FindNextElementOptions { SearchRoot = Root }))
+        handler();
+    }
+
+    private void CycleTab(int step)
+    {
+        Screen[] tabs = [Screen.Home, Screen.Library, Screen.Settings];
+        int current = _screen switch { Screen.Home => 0, Screen.Settings => 2, _ => 1 };
+        Navigate(tabs[(current + step + tabs.Length) % tabs.Length]);
+    }
+
+    private void OpenSearch()
+    {
+        if (_screen != Screen.Library)
+            Navigate(Screen.Library);
+        DispatcherQueue.TryEnqueue(ShowKeyboard);
+    }
+
+    private void CycleFilter(int step)
+    {
+        if (_screen != Screen.Library)
+            return;
+        SetFilter(LibraryViews.Cycle(_filter, step));
+        DispatcherQueue.TryEnqueue(RestoreFocus);
+    }
+
+    private void ConfirmFocused()
+    {
+        switch (FocusManager.GetFocusedElement(XamlRoot))
         {
-            if (FocusManager.GetFocusedElement(XamlRoot) is FrameworkElement focused)
-                focused.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
+            case TextBox text when text == Search:
+                ShowKeyboard();
+                break;
+            case ToggleSwitch { IsEnabled: true } toggle:
+                toggle.IsOn = !toggle.IsOn;
+                break;
+            case Button { IsEnabled: true } button:
+                Invoke(button);
+                break;
+            default:
+                RestoreFocus();
+                break;
         }
-        else if (FocusManager.GetFocusedElement(XamlRoot) is null)
+    }
+
+    private static void Invoke(Button button)
+    {
+        var peer = FrameworkElementAutomationPeer.CreatePeerForElement(button);
+        if (peer?.GetPattern(PatternInterface.Invoke) is IInvokeProvider invoker)
+            invoker.Invoke();
+    }
+
+    private void MoveFocus(FocusNavigationDirection direction)
+    {
+        if (!FocusManager.TryMoveFocus(direction, new FindNextElementOptions { SearchRoot = Root }))
         {
-            RestoreFocus();
+            if (FocusManager.GetFocusedElement(XamlRoot) is null)
+                RestoreFocus();
+            return;
         }
+        if (FocusManager.GetFocusedElement(XamlRoot) is FrameworkElement focused)
+            focused.StartBringIntoView(new BringIntoViewOptions { AnimationDesired = false });
     }
 
     private void ShowKeyboard()

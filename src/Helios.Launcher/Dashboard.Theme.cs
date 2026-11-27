@@ -154,17 +154,19 @@ public sealed partial class Dashboard
             buttons.Add((value, button));
             row.Children.Add(button);
         }
-        _appearanceRenderers.Add(() =>
-        {
-            foreach (var (value, button) in buttons)
-            {
-                bool selected = EqualityComparer<T>.Default.Equals(read(_theme), value);
-                StyleChip(button, selected);
-                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button,
-                    $"{label}: {button.Content}{(selected ? ", selected" : string.Empty)}");
-            }
-        });
+        _appearanceRenderers.Add(() => RenderOptions(label, buttons, read(_theme)));
         AppearanceRows.Children.Add(OptionGroup(label, row));
+    }
+
+    private static void RenderOptions<T>(string label, List<(T Value, Button Button)> buttons, T current)
+    {
+        foreach (var (value, button) in buttons)
+        {
+            bool selected = EqualityComparer<T>.Default.Equals(current, value);
+            StyleChip(button, selected);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button,
+                $"{label}: {button.Content}{(selected ? ", selected" : string.Empty)}");
+        }
     }
 
     private void AddAccentRow()
@@ -173,32 +175,39 @@ public sealed partial class Dashboard
         var swatches = new List<(string Hex, Button Button)>();
         foreach (string hex in ConsoleTheme.AccentSwatches)
         {
-            ConsoleTheme.TryParseColor(hex, out var rgb);
-            var button = new Button
-            {
-                Style = (Style)Application.Current.Resources["HeliosPill"],
-                Width = 44,
-                Height = 44,
-                MinHeight = 44,
-                Padding = new Thickness(0),
-                CornerRadius = new CornerRadius(22),
-                Background = new SolidColorBrush(ColorHelper.FromArgb(255, rgb.R, rgb.G, rgb.B)),
-                BorderBrush = new SolidColorBrush(Colors.White),
-            };
+            var button = Swatch(hex);
             button.Click += (_, _) => ApplyTheme(_theme with { Accent = hex, Name = "Custom" }, persist: true);
             swatches.Add((hex, button));
             row.Children.Add(button);
         }
-        _appearanceRenderers.Add(() =>
-        {
-            foreach (var (hex, button) in swatches)
-            {
-                bool selected = string.Equals(_theme.Accent, hex, StringComparison.OrdinalIgnoreCase);
-                button.BorderThickness = new Thickness(selected ? 3 : 0);
-                Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, $"Accent color {hex}{(selected ? ", selected" : string.Empty)}");
-            }
-        });
+        _appearanceRenderers.Add(() => RenderSwatches(swatches, _theme.Accent));
         AppearanceRows.Children.Add(OptionGroup("Accent", row));
+    }
+
+    private static void RenderSwatches(List<(string Hex, Button Button)> swatches, string accent)
+    {
+        foreach (var (hex, button) in swatches)
+        {
+            bool selected = string.Equals(accent, hex, StringComparison.OrdinalIgnoreCase);
+            button.BorderThickness = new Thickness(selected ? 3 : 0);
+            Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, $"Accent color {hex}{(selected ? ", selected" : string.Empty)}");
+        }
+    }
+
+    private static Button Swatch(string hex)
+    {
+        ConsoleTheme.TryParseColor(hex, out var rgb);
+        return new Button
+        {
+            Style = (Style)Application.Current.Resources["HeliosPill"],
+            Width = 44,
+            Height = 44,
+            MinHeight = 44,
+            Padding = new Thickness(0),
+            CornerRadius = new CornerRadius(22),
+            Background = new SolidColorBrush(ColorHelper.FromArgb(255, rgb.R, rgb.G, rgb.B)),
+            BorderBrush = new SolidColorBrush(Colors.White),
+        };
     }
 
     private void AddBackgroundRow()
