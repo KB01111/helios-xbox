@@ -5,11 +5,16 @@ public sealed record GamingHomeState(string? HomeApp, bool? StartupToHome, bool 
 {
     public const string XboxAppId = "Microsoft.GamingApp_8wekyb3d8bbwe!Microsoft.Xbox.App";
 
-    public static GamingHomeState From(string? homeApp, bool? startupToHome, string? heliosAppId)
+    /// <param name="observedAsHome">
+    /// True when Windows has activated Helios through windows.gaming:///home or ///library. Some builds never write
+    /// GamingHomeApp, so that activation proves Helios is the home app whenever the registry value is missing.
+    /// </param>
+    public static GamingHomeState From(string? homeApp, bool? startupToHome, string? heliosAppId, bool observedAsHome = false)
     {
         string? home = string.IsNullOrWhiteSpace(homeApp) ? null : homeApp.Trim();
-        bool isHelios = home is not null && heliosAppId is not null
-            && string.Equals(home, heliosAppId, StringComparison.OrdinalIgnoreCase);
+        bool isHelios = home is not null
+            ? heliosAppId is not null && string.Equals(home, heliosAppId, StringComparison.OrdinalIgnoreCase)
+            : observedAsHome;
         return new GamingHomeState(home, startupToHome, isHelios);
     }
 

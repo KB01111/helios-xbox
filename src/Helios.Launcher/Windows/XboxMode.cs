@@ -39,20 +39,27 @@ internal sealed class XboxMode : IDisposable
 
     internal static bool CanSet() => Call(CanSetGamingFullScreenExperience) == true;
 
-    /// <summary>Enters or leaves Xbox mode. Returns false when Windows declined the request.</summary>
-    internal static bool TrySet(bool active)
+    internal enum SetResult { Done, AppliesAfterRestart, Declined }
+
+    /// <summary>Enters or leaves Xbox mode.</summary>
+    internal static SetResult Set(bool active)
     {
         try
         {
             int result = SetGamingFullScreenExperience(active);
-            // ERROR_FAIL_NOACTION_REBOOT: Windows accepted the change and applies it on restart.
-            return result >= 0 || result == unchecked((int)0x8007015E);
+            // ERROR_FAIL_NOACTION_REBOOT: Windows accepted the change and applies it on restart. Handhelds that start
+            // in Xbox mode offer a restart when re-entering, to bring back the background-process limits.
+            return result == unchecked((int)0x8007015E) ? SetResult.AppliesAfterRestart
+                : result >= 0 ? SetResult.Done : SetResult.Declined;
         }
         catch (Exception error) when (error is DllNotFoundException or EntryPointNotFoundException)
         {
-            return false;
+            return SetResult.Declined;
         }
     }
+
+    /// <summary>Enters or leaves Xbox mode. Returns false when Windows declined the request.</summary>
+    internal static bool TrySet(bool active) => Set(active) != SetResult.Declined;
 
     /// <summary>The app user model ID Windows uses for this package, or null when running without package identity.</summary>
     internal static string? AppUserModelId
@@ -70,6 +77,22 @@ internal sealed class XboxMode : IDisposable
         }
     }
 
+    private const string ObservedHomeFile = "gaming-home.seen";
+
+    /// <summary>True once Windows has activated Helios through Game Bar Home or Library (windows.gaming:///...).</summary>
+    internal static bool ObservedAsHome { get; private set; }
+
+    internal static void LoadObservedHome(string dataDirectory) =>
+        ObservedAsHome = File.Exists(Path.Combine(dataDirectory, ObservedHomeFile));
+
+    internal static void RecordObservedHome(string dataDirectory)
+    {
+        if (ObservedAsHome)
+            return;
+        ObservedAsHome = true;
+        DiagnosticsLog.Append(Path.Combine(dataDirectory, ObservedHomeFile), DateTimeOffset.UtcNow.ToString("O"));
+    }
+
     internal static GamingHomeState ReadHome()
     {
         try
@@ -78,33 +101,24 @@ internal sealed class XboxMode : IDisposable
             return GamingHomeState.From(
                 key?.GetValue("GamingHomeApp") as string,
                 key?.GetValue("StartupToGamingHome") is int startup ? startup != 0 : null,
-                AppUserModelId);
+                AppUserModelId,
+                ObservedAsHome);
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException or System.Security.SecurityException)
         {
-            return GamingHomeState.From(null, null, AppUserModelId);
+            return GamingHomeState.From(null, null, AppUserModelId, ObservedAsHome);
         }
     }
 
     internal static void WriteActivation(string dataDirectory, string activation, long elapsedMilliseconds)
     {
-        try
-        {
-            string path = Path.Combine(dataDirectory, "activation.log");
-            string state = IsActive() is { } active ? (active ? "active" : "inactive") : "unknown";
-            var home = ReadHome();
-            string entry = $"{DateTimeOffset.UtcNow:O} activation={activation} xboxMode={state} "
-                + $"home={(home.IsHelios ? "helios" : home.HomeApp ?? "unset")} startupToHome={home.StartupToHome?.ToString() ?? "unset"} "
-                + $"windowMs={elapsedMilliseconds}";
-            if (File.Exists(path) && new FileInfo(path).Length >= 32 * 1024)
-                File.WriteAllText(path, entry + Environment.NewLine);
-            else
-                File.AppendAllText(path, entry + Environment.NewLine);
-        }
-        catch (Exception error) when (error is IOException or UnauthorizedAccessException)
-        {
-            Debug.WriteLine(error.Message);
-        }
+        string state = IsActive() is { } active ? (active ? "active" : "inactive") : "unknown";
+        var home = ReadHome();
+        string entry = $"{DateTimeOffset.UtcNow:O} activation={activation} xboxMode={state} "
+            + $"home={(home.IsHelios ? "helios" : home.HomeApp ?? "unset")} startupToHome={home.StartupToHome?.ToString() ?? "unset"} "
+            + $"windowMs={elapsedMilliseconds}";
+        if (!DiagnosticsLog.Append(Path.Combine(dataDirectory, "activation.log"), entry))
+            Debug.WriteLine("activation.log could not be written");
     }
 
     public void Dispose()

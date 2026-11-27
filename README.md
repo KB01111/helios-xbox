@@ -16,9 +16,11 @@ The script trusts the preview certificate and installs the package. Helios decla
 
 ## Use Helios as the Xbox mode home
 
-After installation, Helios appears in **Settings → Gaming → Xbox mode → Choose home app**. With Helios selected and **Enter Xbox mode on startup** turned on, a restart signs in straight into Helios instead of the Xbox app, and the Game Bar **Home** button returns to Helios. In Xbox mode, Helios stays full screen, and the top-right button returns to the Windows desktop instead of closing Helios. **Settings → Xbox mode** in Helios shows the current home app and startup state.
+After installation, Helios appears in **Settings → Gaming → Xbox mode → Choose home app** on gaming handhelds. With Helios selected and **Enter Xbox mode on startup** turned on, a restart signs in straight into Helios instead of the Xbox app. In Game Bar, **Home** returns to Helios and **Library** opens the Helios library. Win+F11 switches between Xbox mode and the desktop. In Xbox mode, Helios stays full screen, and the top-right button returns to the Windows desktop instead of closing Helios. The power button next to it, or View on the controller, opens Sleep, Restart, Shut down and Sign out. On handhelds, the header shows the battery level. **Settings → Xbox mode** in Helios shows the current home app and startup state.
 
 To go back to the Xbox app, run `.\scripts\Install-Helios.ps1 -RestoreXboxApp` or choose Xbox in Windows Settings. Helios stays installed. See the [compatibility notes](docs/xbox-mode-compatibility.md) for details and rollback.
+
+Helios starts full screen with a short startup animation, which also serves as the loading screen. Press A, B, Enter or Escape to skip it. With **Settings → Accessibility → Visual effects → Animation effects** off, it shows a still title card instead. On the desktop, F11 or **Settings → Full screen on the desktop** switches to a window, and Helios remembers your choice.
 
 ## Console themes
 
@@ -47,9 +49,10 @@ Five presets are built in: Ember, Tide, Marquee, Arcade and Slate. **Export them
 | LB / RB | | Switch tabs |
 | LT / RT | | Change the library filter |
 | Menu | | Settings |
+| View | | Power menu: Sleep, Restart, Shut down, Sign out, and Return to desktop in Xbox mode |
 | | F11 | Full screen on the desktop |
 
-**Library → Add file** adds a game executable or shortcut. **Installed app** adds a registered Windows title. Turn on **Settings → Start Helios at Windows sign-in** to open Helios after a regular desktop sign-in. The package also registers `helios-launcher://home` for launch or bring-to-front.
+**Library → Add file** adds a game executable or shortcut. **Installed app** adds a registered Windows title. Turn on **Settings → Start Helios at Windows sign-in** to open Helios after a regular desktop sign-in. The package also registers `helios-launcher://home` and `helios-launcher://library` to start Helios or bring it to the front on that page.
 
 ## Build
 

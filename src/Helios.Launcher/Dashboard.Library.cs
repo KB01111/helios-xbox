@@ -23,21 +23,30 @@ public sealed partial class Dashboard
     private async void LoadLibrary(object sender, RoutedEventArgs args)
     {
         Loaded -= LoadLibrary;
-        Navigate(Screen.Home);
+        Navigate(_launch.Target == LaunchTarget.Library ? Screen.Library : Screen.Home);
+        StartIntro();
         try
         {
-            _store = await Task.Run(() => new LibraryStore(Path.Combine(_window.DataDirectory, "library.db")));
-            _games = await Task.Run(_store.ReadGames);
+            var (store, quarantined) = await Task.Run(() => LibraryStore.OpenOrRecover(Path.Combine(_window.DataDirectory, "library.db")));
+            _store = store;
+            LoadFullScreenPreference(store);
+            _games = await Task.Run(store.ReadGames);
             _ready = true;
             LoadTheme();
             UpdateLibraryViews();
-            if (_store.GetSetting("fullScreen") == "true" && !_window.IsFullScreen)
-                _window.SetFullScreen(true);
+            IntroLibraryReady();
+            if (quarantined is not null)
+            {
+                RecoveryText.Text = $"The game library was damaged and a new one was created. Favorites need to be set again. The old copy is {Path.GetFileName(quarantined)} in the Helios data folder.";
+                RecoveryText.Visibility = Visibility.Visible;
+            }
             await RefreshLibraryAsync();
         }
         catch (Exception error) when (IsLocalError(error))
         {
             Status.Text = $"Could not open the game library. {error.Message}";
+            _ready = true; // Show the dashboard (Settings and power still work) instead of holding on the intro.
+            IntroLibraryReady();
         }
     }
 
