@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "Helios.Launcher (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "Helios.Launcher (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
