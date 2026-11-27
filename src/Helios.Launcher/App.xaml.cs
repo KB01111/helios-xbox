@@ -28,16 +28,16 @@ public partial class App : Application
         {
             var queue = DispatcherQueue.GetForCurrentThread();
             SynchronizationContext.SetSynchronizationContext(new DispatcherQueueSynchronizationContext(queue));
-            var app = new App { StartedAtSignIn = activation.Kind == ExtendedActivationKind.StartupTask };
+            var app = new App { Activation = activation.Kind.ToString() };
             primary.Activated += (_, _) => queue.TryEnqueue(() => app._window?.BringToFront());
         });
     }
 
-    private bool StartedAtSignIn { get; init; }
+    private string Activation { get; init; } = "Launch";
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        _window = new MainWindow(StartedAtSignIn);
+        _window = new MainWindow(Activation);
         _window.Activate();
     }
 }

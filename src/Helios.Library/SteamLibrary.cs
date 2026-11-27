@@ -85,6 +85,38 @@ public static partial class SteamLibrary
         return new GameEntry($"steam:{appId}", title.Trim(), GameSource.Steam, appId, FindArtwork(steamRoot, appId));
     }
 
+    /// <summary>
+    /// Finds the 600×900 portrait cover next to a game's stored Steam artwork, for portrait tile themes.
+    /// Handles both the legacy flat cache ({appid}_name.jpg) and the per-app folders of newer clients.
+    /// </summary>
+    public static string? FindCover(string? artwork, string appId)
+    {
+        if (artwork is null || !Path.IsPathFullyQualified(artwork))
+            return null;
+        try
+        {
+            string? directory = Path.GetDirectoryName(artwork);
+            if (directory is null)
+                return null;
+            if (Path.GetFileName(artwork).StartsWith(appId + "_", StringComparison.Ordinal))
+            {
+                string legacy = Path.Combine(directory, $"{appId}_library_600x900.jpg");
+                return File.Exists(legacy) ? legacy : null;
+            }
+            for (var folder = new DirectoryInfo(directory); folder is not null; folder = folder.Parent)
+            {
+                if (folder.Name != appId)
+                    continue;
+                return Directory.EnumerateFiles(folder.FullName, "library_600x900.jpg", SearchOption.AllDirectories).FirstOrDefault();
+            }
+        }
+        catch (Exception error) when (error is IOException or UnauthorizedAccessException or ArgumentException)
+        {
+            // Covers are optional.
+        }
+        return null;
+    }
+
     private static string? FindArtwork(string root, string appId)
     {
         string cache = Path.Combine(root, "appcache", "librarycache");

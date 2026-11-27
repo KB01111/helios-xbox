@@ -29,12 +29,60 @@ public sealed partial class Dashboard
         {
             _updatingSettings = false;
         }
-        ModeMessage.Text = XboxMode.IsActive() switch
+        RenderXboxMode();
+    }
+
+    private void RenderXboxMode()
+    {
+        bool? active = XboxMode.IsActive();
+        bool? supported = XboxMode.IsSupported();
+        var home = XboxMode.ReadHome();
+        bool canSet = XboxMode.CanSet();
+
+        ModeState.Text = active switch
         {
-            true => "Xbox mode is active. Use Game Bar or Task View to return to the Windows desktop.",
-            false => "Xbox mode is inactive. Open Windows Settings to see the gaming home and startup options available on this PC.",
-            null => "Windows did not report the Xbox mode state. Check availability in Windows Settings.",
+            true => "On",
+            false when supported == false => "Not available on this PC",
+            false => "Off",
+            null => "Not reported by this Windows build",
         };
+        HomeState.Text = home.IsHelios ? "Helios ✓" : home.HomeDisplayName;
+        SignInState.Text = home.StartupToHome switch
+        {
+            true => "Starts in Xbox mode",
+            false => "Starts on the desktop",
+            null => "Not configured",
+        };
+        ModeMessage.Text = !home.IsHelios
+            ? "To boot into Helios instead of the Xbox app, choose Helios under Choose home app, then turn on Enter Xbox mode on startup. "
+              + "If Helios is missing from the list, reinstall it with scripts/Install-Helios.ps1, which installs the gaming home capability."
+            : home.StartupToHome != true
+                ? "Helios is the Xbox mode home. Turn on Enter Xbox mode on startup to boot straight into Helios."
+                : "Helios opens when Windows starts in Xbox mode and when you press Home in Game Bar.";
+        ModeSwitchButton.Content = active == true ? "Return to desktop" : "Enter Xbox mode";
+        ModeSwitchButton.IsEnabled = active == true || canSet;
+        AboutText.Text = $"Helios Launcher {AppVersion()} · {XboxMode.AppUserModelId ?? "running without package identity"}";
+    }
+
+    private static string AppVersion()
+    {
+        try
+        {
+            var version = Package.Current.Id.Version;
+            return $"{version.Major}.{version.Minor}.{version.Build}";
+        }
+        catch (InvalidOperationException)
+        {
+            return "dev";
+        }
+    }
+
+    private void ModeSwitchClicked(object sender, RoutedEventArgs args)
+    {
+        bool enter = XboxMode.IsActive() != true;
+        if (!XboxMode.TrySet(enter))
+            Status.Text = enter ? "Windows did not enter Xbox mode. Check Xbox mode settings." : "Windows did not leave Xbox mode.";
+        RenderXboxMode();
     }
 
     private void RenderStartup(StartupTask task)
@@ -45,7 +93,7 @@ public sealed partial class Dashboard
         {
             StartupTaskState.DisabledByUser => "Helios was turned off in Windows Startup settings. Turn it back on there.",
             StartupTaskState.DisabledByPolicy or StartupTaskState.EnabledByPolicy => "Windows policy controls this startup setting.",
-            _ => "Opens the dashboard full screen after Windows sign-in. Xbox mode can defer startup apps until the desktop opens.",
+            _ => "Opens Helios full screen after a desktop sign-in. When Helios is the Xbox mode home, Windows starts it for you.",
         };
     }
 

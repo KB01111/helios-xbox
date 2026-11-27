@@ -3,10 +3,12 @@ using Microsoft.UI.Dispatching;
 
 namespace Helios_Launcher.Windows;
 
-internal enum ControllerAction { Up, Down, Left, Right, Confirm, Back, PreviousTab, NextTab }
+internal enum ControllerAction { Up, Down, Left, Right, Confirm, Back, PreviousTab, NextTab, Search, Favorite, Menu, PreviousFilter, NextFilter }
 
 internal sealed class Controller
 {
+    private const uint LeftTriggerBit = 0x10000;
+    private const uint RightTriggerBit = 0x20000;
     private readonly DispatcherQueueTimer _timer;
     private uint? _connected;
     private ulong _nextDiscovery;
@@ -43,7 +45,11 @@ internal sealed class Controller
         if (!ReadState(now, out var input))
             return;
 
-        uint buttons = (uint)(input.Gamepad.Buttons & 0x330f);
+        // D-pad, Menu, A, B, X, Y, LB, RB. Triggers are folded in as virtual bits above the XInput range.
+        uint buttons = (uint)(input.Gamepad.Buttons & 0xF31F);
+        const byte triggerThreshold = 140;
+        if (input.Gamepad.LeftTrigger >= triggerThreshold) buttons |= LeftTriggerBit;
+        if (input.Gamepad.RightTrigger >= triggerThreshold) buttons |= RightTriggerBit;
         uint direction = buttons & 15;
         if (direction == 0)
         {
@@ -75,6 +81,11 @@ internal sealed class Controller
         else if ((pressed & 0x2000) != 0) Emit(ControllerAction.Back);
         else if ((pressed & 0x0100) != 0) Emit(ControllerAction.PreviousTab);
         else if ((pressed & 0x0200) != 0) Emit(ControllerAction.NextTab);
+        else if ((pressed & 0x4000) != 0) Emit(ControllerAction.Search);
+        else if ((pressed & 0x8000) != 0) Emit(ControllerAction.Favorite);
+        else if ((pressed & 0x0010) != 0) Emit(ControllerAction.Menu);
+        else if ((pressed & LeftTriggerBit) != 0) Emit(ControllerAction.PreviousFilter);
+        else if ((pressed & RightTriggerBit) != 0) Emit(ControllerAction.NextFilter);
     }
 
     private bool ReadState(ulong now, out XInputState state)

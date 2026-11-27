@@ -29,8 +29,9 @@ public sealed partial class Dashboard
             _store = await Task.Run(() => new LibraryStore(Path.Combine(_window.DataDirectory, "library.db")));
             _games = await Task.Run(_store.ReadGames);
             _ready = true;
+            LoadTheme();
             UpdateLibraryViews();
-            if (_store.GetSetting("fullScreen") == "true")
+            if (_store.GetSetting("fullScreen") == "true" && !_window.IsFullScreen)
                 _window.SetFullScreen(true);
             await RefreshLibraryAsync();
         }
@@ -187,7 +188,7 @@ public sealed partial class Dashboard
             var scan = await Task.Run(() => WindowsGameLibrary.ScanAsync(ArtworkDirectory, allApps: true));
             if (_screen != Screen.Picker)
                 return;
-            WindowsPicker.ItemsSource = scan.Games.Select(game => new Tile(game)).ToArray();
+            WindowsPicker.ItemsSource = scan.Games.Select(game => new Tile(game, GridTileStyle)).ToArray();
             Status.Text = scan.Games.Count == 0 ? "No eligible apps found" : "Choose the installed title to add";
         }
         catch (Exception error) when (IsLocalError(error))
@@ -222,20 +223,25 @@ public sealed partial class Dashboard
 
     private void ShowAllGames()
     {
-        _filter = 0;
-        Filter.Content = "All games";
         Search.Text = string.Empty;
-        ShowLibrary();
+        SetFilter(LibraryFilter.All);
     }
 
     private void FavoriteClicked(object sender, RoutedEventArgs args)
     {
-        if (_selected is not { } game || _store is null)
+        if (_selected is { } game)
+            ToggleFavorite(game);
+    }
+
+    private void ToggleFavorite(GameEntry game)
+    {
+        if (_store is null)
             return;
         try
         {
             _store.SetFavorite(game.Id, !game.IsFavorite);
             ReloadGames();
+            Status.Text = game.IsFavorite ? $"{game.Title} removed from favorites" : $"{game.Title} added to favorites";
         }
         catch (SqliteException error)
         {
