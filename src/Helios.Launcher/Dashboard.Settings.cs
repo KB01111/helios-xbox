@@ -15,7 +15,9 @@ public sealed partial class Dashboard
         if (_updatingSettings)
             return;
         _updatingSettings = true;
-        FullScreenToggle.IsOn = _window.IsFullScreen;
+        // The toggle is the desktop preference; Xbox mode always runs full screen regardless.
+        FullScreenToggle.IsOn = DesktopFullScreenPreference;
+        FullScreenMessage.Visibility = Visible(XboxMode.IsActive() == true);
         try
         {
             RenderStartup(await StartupTask.GetAsync(StartupId));
@@ -53,12 +55,16 @@ public sealed partial class Dashboard
             false => "Starts on the desktop",
             null => "Not configured",
         };
+        // Wording follows Microsoft's Xbox mode guide: handhelds pick a home app; other PCs turn on Enable Xbox mode.
         ModeMessage.Text = !home.IsHelios
-            ? "To boot into Helios instead of the Xbox app, choose Helios under Choose home app, then turn on Enter Xbox mode on startup. "
-              + "If Helios is missing from the list, reinstall it with scripts/Install-Helios.ps1, which installs the gaming home capability."
+            ? "On a gaming handheld, choose Helios under Choose home app, then turn on Enter Xbox mode on startup. "
+              + "On other PCs, turn on Enable Xbox mode, and Show Xbox mode in Task View if you want it there. "
+              + "If Helios is missing from Choose home app, reinstall it with scripts/Install-Helios.ps1, which adds the gaming home capability."
             : home.StartupToHome != true
-                ? "Helios is the Xbox mode home. Turn on Enter Xbox mode on startup to boot straight into Helios."
-                : "Helios opens when Windows starts in Xbox mode and when you press Home in Game Bar.";
+                ? "Helios is the Xbox mode home: Home in Game Bar returns here and Library opens your games. "
+                  + "Turn on Enter Xbox mode on startup to boot straight into Helios."
+                : "Helios opens when Windows starts in Xbox mode. Home in Game Bar returns here, Library opens your games, "
+                  + "and Win+F11 switches between Xbox mode and the desktop.";
         ModeSwitchButton.Content = active == true ? "Return to desktop" : "Enter Xbox mode";
         ModeSwitchButton.IsEnabled = active == true || canSet;
         AboutText.Text = $"Helios Launcher {AppVersion()} · {XboxMode.AppUserModelId ?? "running without package identity"}";
@@ -80,8 +86,16 @@ public sealed partial class Dashboard
     private void ModeSwitchClicked(object sender, RoutedEventArgs args)
     {
         bool enter = XboxMode.IsActive() != true;
-        if (!XboxMode.TrySet(enter))
-            Status.Text = enter ? "Windows did not enter Xbox mode. Check Xbox mode settings." : "Windows did not leave Xbox mode.";
+        Status.Text = XboxMode.Set(enter) switch
+        {
+            XboxMode.SetResult.AppliesAfterRestart => enter
+                ? "Windows will start Xbox mode after a restart, with background apps limited for gaming."
+                : "Windows will return to the desktop after a restart.",
+            XboxMode.SetResult.Declined => enter
+                ? "Windows did not enter Xbox mode. Check Settings > Gaming > Xbox mode, or press Win+F11."
+                : "Windows did not leave Xbox mode. Use Game Bar, Task View or Win+F11.",
+            _ => Status.Text,
+        };
         RenderXboxMode();
     }
 
@@ -93,7 +107,8 @@ public sealed partial class Dashboard
         {
             StartupTaskState.DisabledByUser => "Helios was turned off in Windows Startup settings. Turn it back on there.",
             StartupTaskState.DisabledByPolicy or StartupTaskState.EnabledByPolicy => "Windows policy controls this startup setting.",
-            _ => "Opens Helios full screen after a desktop sign-in. When Helios is the Xbox mode home, Windows starts it for you.",
+            _ => "Opens Helios full screen after a desktop sign-in. In Xbox mode, Windows starts Helios as the home app. "
+                 + "Settings > Apps > Startup also offers Start when exiting to desktop for your other apps.",
         };
     }
 
@@ -122,9 +137,13 @@ public sealed partial class Dashboard
         }
     }
 
+    /// <summary>Full screen on the desktop, as saved. Loaded once with the library so input never waits on SQLite.</summary>
+    private bool DesktopFullScreenPreference { get; set; }
+
     private void ApplyFullScreen(bool enabled)
     {
-        _window.SetFullScreen(enabled);
+        DesktopFullScreenPreference = enabled;
+        _window.SetFullScreen(enabled); // Ignored in Xbox mode, which stays full screen.
         try
         {
             _store?.SetSetting("fullScreen", enabled ? "true" : "false");

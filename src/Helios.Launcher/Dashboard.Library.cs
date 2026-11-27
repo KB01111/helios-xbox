@@ -23,21 +23,34 @@ public sealed partial class Dashboard
     private async void LoadLibrary(object sender, RoutedEventArgs args)
     {
         Loaded -= LoadLibrary;
-        Navigate(Screen.Home);
+        Navigate(_launch.Target == LaunchTarget.Library ? Screen.Library : Screen.Home);
+        StartIntro();
         try
         {
-            _store = await Task.Run(() => new LibraryStore(Path.Combine(_window.DataDirectory, "library.db")));
+            var (store, quarantined) = await Task.Run(() => LibraryStore.OpenOrRecover(Path.Combine(_window.DataDirectory, "library.db")));
+            _store = store;
             _games = await Task.Run(_store.ReadGames);
             _ready = true;
             LoadTheme();
             UpdateLibraryViews();
-            if (_store.GetSetting("fullScreen") == "true" && !_window.IsFullScreen)
+            DesktopFullScreenPreference = _store.GetSetting("fullScreen") != "false";
+            if (DesktopFullScreenPreference && !_window.IsFullScreen)
                 _window.SetFullScreen(true);
+            IntroLibraryReady();
+            if (quarantined is not null)
+            {
+                RecoveryText.Text = $"The game library was damaged and has been rebuilt. The old copy is {Path.GetFileName(quarantined)} in the Helios data folder.";
+                RecoveryText.Visibility = Visibility.Visible;
+            }
             await RefreshLibraryAsync();
+            if (quarantined is not null)
+                Status.Text = "The library was damaged and has been rebuilt from your installed games. Favorites need to be set again.";
         }
         catch (Exception error) when (IsLocalError(error))
         {
             Status.Text = $"Could not open the game library. {error.Message}";
+            _ready = true; // Show the dashboard (Settings and power still work) instead of holding on the intro.
+            IntroLibraryReady();
         }
     }
 
