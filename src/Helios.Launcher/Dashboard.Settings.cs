@@ -1,3 +1,4 @@
+using Helios.Library;
 using Helios_Launcher.Windows;
 using Microsoft.Data.Sqlite;
 using Microsoft.UI.Xaml;
@@ -8,6 +9,8 @@ namespace Helios_Launcher;
 public sealed partial class Dashboard
 {
     private bool _updatingSettings;
+    private bool _fullScreenPreferencePending;
+    private bool _gamingShellActivatedWhileLoading;
     private const string StartupId = "HeliosSignIn";
 
     private async Task RefreshStartupAsync()
@@ -140,13 +143,40 @@ public sealed partial class Dashboard
     /// <summary>Full screen on the desktop, as saved. Loaded once with the library so input never waits on SQLite.</summary>
     private bool DesktopFullScreenPreference { get; set; }
 
+    private void LoadFullScreenPreference(LibraryStore store)
+    {
+        if (_fullScreenPreferencePending)
+        {
+            _fullScreenPreferencePending = false;
+            SaveFullScreenPreference(store);
+            return;
+        }
+
+        DesktopFullScreenPreference = store.GetSetting("fullScreen") != "false";
+        _window.SetFullScreen(DesktopFullScreenPreference || _launch.FromStartupTask
+            || _launch.FromGamingShell || _gamingShellActivatedWhileLoading);
+
+        bool updating = _updatingSettings;
+        _updatingSettings = true;
+        FullScreenToggle.IsOn = DesktopFullScreenPreference;
+        _updatingSettings = updating;
+    }
+
     private void ApplyFullScreen(bool enabled)
     {
         DesktopFullScreenPreference = enabled;
         _window.SetFullScreen(enabled); // Ignored in Xbox mode, which stays full screen.
+        if (_store is { } store)
+            SaveFullScreenPreference(store);
+        else
+            _fullScreenPreferencePending = true;
+    }
+
+    private void SaveFullScreenPreference(LibraryStore store)
+    {
         try
         {
-            _store?.SetSetting("fullScreen", enabled ? "true" : "false");
+            store.SetSetting("fullScreen", DesktopFullScreenPreference ? "true" : "false");
         }
         catch (SqliteException error)
         {

@@ -125,7 +125,7 @@ public sealed partial class Dashboard
         choices.Add(new("", "Sign out", () => Confirm("Sign out now?", PowerAction.SignOut, "Sign out", "Signing out…")));
         choices.Add(xbox
             ? new("", "Close Helios", ConfirmClose)
-            : new("", "Exit Helios", () => _window.CloseForReal()));
+            : new("", "Exit Helios", ExitFromPowerMenu));
         choices.Add(new("", "Cancel", ClosePowerMenu));
         ShowPowerCard(fromClose && xbox ? "Leave Helios?" : "Power",
             fromClose && xbox ? "Helios is your Xbox mode home. Return to the desktop to keep it ready for Game Bar Home." : null,
@@ -140,6 +140,14 @@ public sealed partial class Dashboard
         ShowPowerCard("Close Helios?",
             "Xbox mode will have no home screen until you press Home in Game Bar, which starts Helios again.",
             [new("", "Close Helios", () => _window.CloseForReal(), Accent: true), new("", "Back", () => OpenPowerMenu(false))]);
+
+    private void ExitFromPowerMenu()
+    {
+        if (XboxMode.IsActive() == true)
+            ConfirmClose();
+        else
+            _window.CloseForReal();
+    }
 
     private void ShowPowerCard(string title, string? message, IReadOnlyList<PowerChoice> choices)
     {

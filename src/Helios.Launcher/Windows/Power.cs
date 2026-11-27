@@ -34,10 +34,9 @@ internal static class Power
     {
         // Handhelds use Modern Standby (S0 low power idle), where SetSuspendState does nothing. Turning the
         // display off is how Windows enters standby there, the same as pressing the power button.
-        if (!IsModernStandby() && EnableShutdownPrivilege() && SetSuspendState(false, false, false))
-            return true;
-        PostMessage(Broadcast, WmSysCommand, ScMonitorPower, 2);
-        return true;
+        if (!IsModernStandby())
+            return EnableShutdownPrivilege() && SetSuspendState(false, false, false);
+        return PostMessage(Broadcast, WmSysCommand, ScMonitorPower, 2);
     }
 
     private static bool Exit(uint flags) => EnableShutdownPrivilege() && ExitWindowsEx(flags, ShutdownReasonPlanned);

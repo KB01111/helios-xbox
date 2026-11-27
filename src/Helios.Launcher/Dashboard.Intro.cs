@@ -127,6 +127,8 @@ public sealed partial class Dashboard
     /// <summary>Game Bar Home/Library or helios-launcher:// asked for a page while Helios was already running.</summary>
     internal void ShowRequested(LaunchRequest launch)
     {
+        if (launch.FromGamingShell && _store is null)
+            _gamingShellActivatedWhileLoading = true;
         if (!launch.FromGamingShell && launch.Kind != "Protocol")
             return; // A Start menu or taskbar launch just brings Helios forward where the player left it.
         if (IntroShowing)

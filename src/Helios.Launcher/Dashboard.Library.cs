@@ -29,22 +29,18 @@ public sealed partial class Dashboard
         {
             var (store, quarantined) = await Task.Run(() => LibraryStore.OpenOrRecover(Path.Combine(_window.DataDirectory, "library.db")));
             _store = store;
-            _games = await Task.Run(_store.ReadGames);
+            LoadFullScreenPreference(store);
+            _games = await Task.Run(store.ReadGames);
             _ready = true;
             LoadTheme();
             UpdateLibraryViews();
-            DesktopFullScreenPreference = _store.GetSetting("fullScreen") != "false";
-            if (DesktopFullScreenPreference && !_window.IsFullScreen)
-                _window.SetFullScreen(true);
             IntroLibraryReady();
             if (quarantined is not null)
             {
-                RecoveryText.Text = $"The game library was damaged and has been rebuilt. The old copy is {Path.GetFileName(quarantined)} in the Helios data folder.";
+                RecoveryText.Text = $"The game library was damaged and a new one was created. Favorites need to be set again. The old copy is {Path.GetFileName(quarantined)} in the Helios data folder.";
                 RecoveryText.Visibility = Visibility.Visible;
             }
             await RefreshLibraryAsync();
-            if (quarantined is not null)
-                Status.Text = "The library was damaged and has been rebuilt from your installed games. Favorites need to be set again.";
         }
         catch (Exception error) when (IsLocalError(error))
         {

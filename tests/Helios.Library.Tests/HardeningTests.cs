@@ -62,12 +62,15 @@ public sealed class HardeningTests : IDisposable
     public void BatteryGlyph_TracksLevelAndCharging(int percent, bool charging, int expected) =>
         Assert.Equal(char.ConvertFromUtf32(expected), BatteryDisplay.Glyph(percent, charging));
 
-    [Fact]
-    public void BatteryGlyph_SaverOnlyWhileDischarging()
-    {
-        Assert.Equal(char.ConvertFromUtf32(0xE863), BatteryDisplay.Glyph(40, charging: false, saver: true));
-        Assert.Equal(char.ConvertFromUtf32(0xE85E), BatteryDisplay.Glyph(40, charging: true, saver: true));
-    }
+    [Theory]
+    [InlineData(0, false, 0xE863)]
+    [InlineData(40, false, 0xE867)]
+    [InlineData(89, false, 0xE86B)]
+    [InlineData(90, false, 0xEA94)]
+    [InlineData(100, false, 0xEA95)]
+    [InlineData(40, true, 0xE85E)]
+    public void BatteryGlyph_SaverTracksLevelOnlyWhileDischarging(int percent, bool charging, int expected) =>
+        Assert.Equal(char.ConvertFromUtf32(expected), BatteryDisplay.Glyph(percent, charging, saver: true));
 
     [Theory]
     [InlineData(15, false, true)]

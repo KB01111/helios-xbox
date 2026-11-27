@@ -7,12 +7,14 @@ public static class BatteryDisplay
     private const int Battery10 = 0xE83F;
     private const int Charging0 = 0xE85A; // BatteryCharging0..BatteryCharging8 are consecutive.
     private const int Charging9 = 0xE83E;
-    private const int Saver = 0xE863;
+    private const int Saver0 = 0xE863; // BatterySaver0..BatterySaver8 are consecutive.
+    private const int Saver9 = 0xEA94;
+    private const int Saver10 = 0xEA95;
 
     public static string Glyph(int percent, bool charging, bool saver = false)
     {
         int level = Math.Clamp(percent, 0, 100) / 10; // 0..10
-        int code = saver && !charging ? Saver
+        int code = saver && !charging ? (level switch { 9 => Saver9, 10 => Saver10, _ => Saver0 + level })
             : charging ? (level >= 9 ? Charging9 : Charging0 + level)
             : level >= 10 ? Battery10 : Battery0 + level;
         return char.ConvertFromUtf32(code);
