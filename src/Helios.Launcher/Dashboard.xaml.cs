@@ -16,10 +16,14 @@ public sealed partial class Dashboard : Page
     private static readonly Vector3 FocusScale = new(1.06f, 1.06f, 1);
     private const int BackdropDecodeWidth = 1600;
 
+    // Honors Settings > Accessibility > Visual effects > Animation effects.
+    private static readonly bool AnimationsEnabled = new global::Windows.UI.ViewManagement.UISettings().AnimationsEnabled;
+
     private readonly MainWindow _window;
     private readonly Controller _controller;
     private readonly DispatcherQueueTimer _clock;
     private readonly DispatcherQueueTimer _backdropDelay;
+    private readonly DispatcherQueueTimer _backgroundDelay;
     private Screen _screen;
     private Screen _returnScreen;
     private GameEntry? _selected;
@@ -47,7 +51,19 @@ public sealed partial class Dashboard : Page
         _backdropDelay.Interval = TimeSpan.FromMilliseconds(90);
         _backdropDelay.IsRepeating = false;
         _backdropDelay.Tick += (_, _) => ApplyBackdrop(_pendingBackdrop);
+        // A short grace period keeps quick Alt+Tab or Game Bar peeks from thrashing the process mode.
+        _backgroundDelay = DispatcherQueue.CreateTimer();
+        _backgroundDelay.Interval = TimeSpan.FromSeconds(3);
+        _backgroundDelay.IsRepeating = false;
+        _backgroundDelay.Tick += (_, _) => EnterBackground();
+        if (!AnimationsEnabled)
+        {
+            BackdropA.OpacityTransition = null;
+            BackdropB.OpacityTransition = null;
+        }
         BuildFilterChips();
+        BuildAppearance();
+        ApplyTheme(ConsoleTheme.Default, persist: false);
         Loaded += LoadLibrary;
         _window.Activated += WindowActivated;
         _window.XboxModeChanged += XboxModeChanged;
@@ -65,13 +81,31 @@ public sealed partial class Dashboard : Page
     {
         bool active = args.WindowActivationState != WindowActivationState.Deactivated;
         _controller.SetActive(active);
-        if (active)
+        if (!active)
         {
-            UpdateClock();
-            UpdateXboxChrome();
-            if (_screen == Screen.Settings)
-                _ = RefreshStartupAsync();
+            _backgroundDelay.Start();
+            return;
         }
+        _backgroundDelay.Stop();
+        if (ProcessMode.IsBackground)
+        {
+            ProcessMode.SetBackground(false);
+            _clock.Start();
+        }
+        UpdateClock();
+        UpdateXboxChrome();
+        if (_screen == Screen.Settings)
+            _ = RefreshStartupAsync();
+    }
+
+    /// <summary>A game (or another app) has the foreground: stop timers, drop cached art and yield CPU and memory.</summary>
+    private void EnterBackground()
+    {
+        if (_picking)
+            return; // A file picker owns the foreground; Helios is still in use.
+        _clock.Stop();
+        Tile.TrimCache();
+        ProcessMode.SetBackground(true);
     }
 
     private void XboxModeChanged()
@@ -90,7 +124,7 @@ public sealed partial class Dashboard : Page
         bool active = XboxMode.IsActive() == true;
         XboxBadge.Visibility = Visible(active);
         // As the Xbox mode home, closing Helios would leave an empty session, so offer the desktop instead.
-        ExitGlyph.Glyph = active ? "" : "";
+        ExitGlyph.Glyph = active ? "\uE7F4" : "\uE8BB";
         ExitLabel.Visibility = Visible(active);
         AutomationPropertiesHelper.SetName(ExitButton, active ? "Return to the Windows desktop" : "Exit Helios");
     }
@@ -105,13 +139,9 @@ public sealed partial class Dashboard : Page
         Body.Padding = new Thickness(gutter, 8, gutter, 24);
         Footer.Padding = new Thickness(gutter, 8, gutter, narrow ? 10 : 16);
         Brand.Visibility = Visible(!narrow);
-        Clock.Visibility = Visible(args.NewSize.Width >= 700);
-        Hints.Visibility = Visible(args.NewSize.Width >= 760);
-        HeroTitle.FontSize = narrow ? 38 : 56;
-        HeroTitle.LineHeight = narrow ? 44 : 62;
         // Keep the hero and the first shelf on screen together, from handhelds (800p) to TVs.
-        // Header, footer and one shelf take about 390 px; the hero gets the rest.
-        HeroArea.Height = Math.Clamp(args.NewSize.Height - 390, 180, 460);
+        _size = args.NewSize;
+        ApplyLayoutMetrics();
         // On short screens (handhelds) the backdrop already shows the art, so keep Play above the fold.
         _compact = args.NewSize.Height < 820;
         DetailsArtFrame.Visibility = Visible(!_compact && DetailsImage.Source is not null);
@@ -153,6 +183,8 @@ public sealed partial class Dashboard : Page
 
     private void AnimateIn(UIElement pane)
     {
+        if (!AnimationsEnabled)
+            return;
         pane.Opacity = 0;
         pane.Translation = new Vector3(0, 16, 0);
         DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Low, () =>
@@ -213,16 +245,18 @@ public sealed partial class Dashboard : Page
 
     private void ShowHome()
     {
-        var shelf = LibraryViews.HomeShelf(_games);
-        var favorites = LibraryViews.Favorites(_games);
+        bool grid = _theme.Layout == HomeLayout.Grid;
+        var shelf = LibraryViews.HomeShelf(_games, grid ? int.MaxValue : 24);
+        var favorites = _theme.Layout == HomeLayout.Shelves ? LibraryViews.Favorites(_games) : [];
+        var style = HomeTileStyle;
         bool anyRecent = shelf.Any(game => game.LastLaunch is not null);
         if (_featured is null || !_games.Any(game => game.Id == _featured.Id))
             _featured = shelf.FirstOrDefault();
         else
             _featured = _games.First(game => game.Id == _featured.Id);
-        ShelfTitle.Text = anyRecent ? "Jump back in" : "Your games";
-        Shelf.ItemsSource = shelf.Select(game => new Tile(game)).ToArray();
-        Favorites.ItemsSource = favorites.Select(game => new Tile(game)).ToArray();
+        ShelfTitle.Text = grid ? "All games" : anyRecent ? "Jump back in" : "Your games";
+        Shelf.ItemsSource = shelf.Select(game => new Tile(game, style)).ToArray();
+        Favorites.ItemsSource = favorites.Select(game => new Tile(game, style)).ToArray();
         ShelfRow.Visibility = Visible(shelf.Count > 0);
         FavoritesRow.Visibility = Visible(favorites.Count > 0);
         UpdateHero(_featured);
@@ -237,7 +271,7 @@ public sealed partial class Dashboard : Page
             : !game.IsAvailable ? "Unavailable. Refresh the library or reinstall it."
             : game.IsFavorite ? $"{Tile.LastPlayed(game.LastLaunch)} · Favorite" : Tile.LastPlayed(game.LastLaunch);
         HeroActionText.Text = game is null ? "Browse library" : "Play";
-        HeroActionGlyph.Glyph = game is null ? "" : "";
+        HeroActionGlyph.Glyph = game is null ? "\uE8F1" : "\uE768";
         HeroAction.IsEnabled = game is null || game.IsAvailable;
         HeroDetails.Visibility = Visible(game is not null);
         if (_screen == Screen.Home)
@@ -254,7 +288,12 @@ public sealed partial class Dashboard : Page
     // Store logos are icons, not scenery, so only real artwork becomes the ambient backdrop.
     private void ApplyBackdrop(GameEntry? game)
     {
-        string? path = game is { Source: not GameSource.Windows } ? game.Artwork : null;
+        string? path = _theme.Backdrop switch
+        {
+            BackdropStyle.Picture => _theme.Picture,
+            BackdropStyle.Solid => null,
+            _ => game is { Source: not GameSource.Windows } ? game.Artwork : null,
+        };
         if (path == _backdropPath)
             return;
         _backdropPath = path;
@@ -263,7 +302,7 @@ public sealed partial class Dashboard : Page
         var outgoing = _backdropOnA ? BackdropA : BackdropB;
         _backdropOnA = !_backdropOnA;
         incoming.Source = image;
-        incoming.Opacity = image is null ? 0 : .55;
+        incoming.Opacity = image is null ? 0 : _backdropOpacity;
         outgoing.Opacity = 0;
     }
 
@@ -271,7 +310,7 @@ public sealed partial class Dashboard : Page
     {
         if (!_ready)
             return;
-        var tiles = LibraryViews.Filter(_games, Search.Text, _filter).Select(game => new Tile(game)).ToArray();
+        var tiles = LibraryViews.Filter(_games, Search.Text, _filter).Select(game => new Tile(game, GridTileStyle)).ToArray();
         GameGrid.ItemsSource = tiles;
         LibraryCount.Text = tiles.Length == _games.Count ? $"{_games.Count} games" : $"{tiles.Length} of {_games.Count}";
         EmptyLibrary.Visibility = Visible(tiles.Length == 0);
@@ -307,8 +346,7 @@ public sealed partial class Dashboard : Page
         foreach (var (filter, chip) in _chips)
         {
             bool selected = filter == _filter;
-            chip.Background = selected ? ThemeBrush("HeliosAccent") : ThemeBrush("HeliosChip");
-            chip.Foreground = selected ? ThemeBrush("HeliosOnAccent") : ThemeBrush("TextFillColorPrimaryBrush");
+            StyleChip(chip, selected);
             AutomationPropertiesHelper.SetName(chip, selected ? $"{LibraryViews.Label(filter)}, selected filter" : $"{LibraryViews.Label(filter)} filter");
         }
     }
@@ -325,7 +363,7 @@ public sealed partial class Dashboard : Page
         DetailsImage.Stretch = game.Source == GameSource.Windows ? Stretch.Uniform : Stretch.UniformToFill;
         DetailsArtFrame.Visibility = Visible(!_compact && DetailsImage.Source is not null);
         PlayButton.IsEnabled = game.IsAvailable;
-        FavoriteGlyph.Glyph = game.IsFavorite ? "" : "";
+        FavoriteGlyph.Glyph = game.IsFavorite ? "\uE735" : "\uE734";
         FavoriteText.Text = game.IsFavorite ? "Favorited" : "Favorite";
         RemoveButton.Visibility = Visible(game.Source == GameSource.Manual || game.IsPinned);
     }
@@ -349,6 +387,8 @@ public sealed partial class Dashboard : Page
     {
         if (sender is not Button { Tag: GameEntry game } tile)
             return;
+        if (!AnimationsEnabled)
+            tile.ScaleTransition = null;
         tile.Scale = FocusScale;
         tile.BorderThickness = new Thickness(3);
         if (_screen == Screen.Home)

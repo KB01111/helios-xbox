@@ -20,6 +20,21 @@ After installation, Helios appears in **Settings → Gaming → Xbox mode → Ch
 
 To go back to the Xbox app, run `.\scripts\Install-Helios.ps1 -RestoreXboxApp` or choose Xbox in Windows Settings. Helios stays installed. See the [compatibility notes](docs/xbox-mode-compatibility.md) for details and rollback.
 
+## Console themes
+
+**Settings → Appearance** restyles Helios live, and the theme is saved on this PC.
+
+| Option | Choices |
+| --- | --- |
+| Home layout | **Shelves** (a hero plus Jump back in and Favorites shelves), **Spotlight** (a tall hero and one compact shelf), **Cinema** (full-strength art with a slim carousel), **Grid** (every game in a wrapping grid) |
+| Tiles | Landscape, Covers (uses Steam's portrait art when the client has cached it), Square |
+| Corners | Sharp, Soft, Round |
+| Accent | Eight colors. Button text switches between dark and light to stay readable. |
+| Background | Art from the focused game, a solid color, or your own picture (Helios keeps a private copy) |
+| Extras | Controller hints and the clock can be turned on or off |
+
+Five presets are built in: Ember, Tide, Marquee, Arcade and Slate. **Export theme** saves the current theme as a `.helios-theme.json` file, and **Import theme** loads one.
+
 ## Controls
 
 | Controller | Keyboard | Action |

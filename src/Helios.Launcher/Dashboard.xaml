@@ -4,12 +4,12 @@
       xmlns:local="using:Helios_Launcher">
     <Page.Resources>
         <DataTemplate x:Key="GameTile" x:DataType="local:Tile">
-            <Button Width="300" Height="169" Style="{StaticResource HeliosTile}" Tag="{x:Bind Game}"
-                    Click="TileClicked" GotFocus="TileFocused" LostFocus="TileUnfocused" CenterPoint="150,84.5,0"
+            <Button Width="{x:Bind TileWidth}" Height="{x:Bind TileHeight}" CornerRadius="{x:Bind Corner}" Style="{StaticResource HeliosTile}"
+                    Tag="{x:Bind Game}" Click="TileClicked" GotFocus="TileFocused" LostFocus="TileUnfocused" CenterPoint="{x:Bind Center}"
                     AutomationProperties.Name="{x:Bind AccessibleName}">
                 <Button.ScaleTransition><Vector3Transition Duration="0:0:0.12" /></Button.ScaleTransition>
                 <Grid>
-                    <TextBlock Text="{x:Bind Initials}" FontSize="40" FontWeight="Bold" Foreground="{ThemeResource HeliosAccent}"
+                    <TextBlock Text="{x:Bind Initials}" Visibility="{x:Bind InitialsVisibility}" FontSize="40" FontWeight="Bold" Foreground="{ThemeResource HeliosAccent}"
                                HorizontalAlignment="Center" VerticalAlignment="Center" Opacity=".8" />
                     <Image Source="{x:Bind Image}" Stretch="{x:Bind ArtStretch}" Margin="{x:Bind ArtMargin}"
                            Opacity="{x:Bind ArtOpacity}" />
@@ -22,7 +22,7 @@
                         </Rectangle.Fill>
                     </Rectangle>
                     <StackPanel VerticalAlignment="Bottom" Padding="14,0,14,10" Spacing="1">
-                        <TextBlock Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" FontSize="16" FontWeight="SemiBold" Foreground="White" />
+                        <TextBlock Text="{x:Bind Title}" TextTrimming="CharacterEllipsis" FontSize="{x:Bind TitleSize}" FontWeight="SemiBold" Foreground="White" />
                         <TextBlock Text="{x:Bind Subtitle}" FontSize="12" Foreground="#B3FFFFFF" />
                     </StackPanel>
                     <Border Visibility="{x:Bind FavoriteBadge}" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="10"
@@ -43,7 +43,8 @@
         <Image x:Name="BackdropB" Stretch="UniformToFill" Opacity="0" IsHitTestVisible="False">
             <Image.OpacityTransition><ScalarTransition Duration="0:0:0.22" /></Image.OpacityTransition>
         </Image>
-        <Rectangle IsHitTestVisible="False">
+        <Rectangle x:Name="ScrimSide" IsHitTestVisible="False">
+            <Rectangle.OpacityTransition><ScalarTransition Duration="0:0:0.22" /></Rectangle.OpacityTransition>
             <Rectangle.Fill>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
                     <GradientStop Color="#F20D0F15" Offset="0" />
@@ -107,7 +108,7 @@
                         <StackPanel.OpacityTransition><ScalarTransition Duration="0:0:0.16" /></StackPanel.OpacityTransition>
                         <StackPanel.TranslationTransition><Vector3Transition Duration="0:0:0.2" /></StackPanel.TranslationTransition>
                         <Grid x:Name="HeroArea" Height="360">
-                            <StackPanel VerticalAlignment="Bottom" Spacing="8" MaxWidth="760" HorizontalAlignment="Left" Margin="0,0,0,14">
+                            <StackPanel x:Name="HeroText" VerticalAlignment="Bottom" Spacing="8" MaxWidth="760" HorizontalAlignment="Left" Margin="0,0,0,14">
                                 <TextBlock x:Name="HeroSource" Text="HELIOS" FontSize="13" FontWeight="SemiBold" CharacterSpacing="160"
                                            Foreground="{ThemeResource HeliosAccent}" />
                                 <TextBlock x:Name="HeroTitle" Text="Your games" FontSize="56" FontWeight="Bold" LineHeight="62"
@@ -128,7 +129,7 @@
                         </Grid>
                         <StackPanel x:Name="ShelfRow" Spacing="6" Visibility="Collapsed">
                             <TextBlock x:Name="ShelfTitle" Text="Jump back in" FontSize="20" FontWeight="SemiBold" />
-                            <ScrollViewer HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Hidden"
+                            <ScrollViewer x:Name="ShelfScroll" HorizontalScrollMode="Enabled" HorizontalScrollBarVisibility="Hidden"
                                           VerticalScrollMode="Disabled" VerticalScrollBarVisibility="Disabled" Margin="-12,0">
                                 <ItemsRepeater x:Name="Shelf" ItemTemplate="{StaticResource GameTile}" Margin="12,10">
                                     <ItemsRepeater.Layout><StackLayout Orientation="Horizontal" Spacing="20" /></ItemsRepeater.Layout>
@@ -258,6 +259,21 @@
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <Button x:Name="ChooseHomeButton" Content="Choose home app" Style="{StaticResource HeliosPill}" Click="OpenModeClicked" />
                                     <Button x:Name="ModeSwitchButton" Content="Enter Xbox mode" Style="{StaticResource HeliosPill}" Click="ModeSwitchClicked" />
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource HeliosCardStyle}">
+                            <StackPanel Spacing="14">
+                                <TextBlock Text="Appearance" FontSize="22" FontWeight="SemiBold" />
+                                <TextBlock Text="Changes apply right away. Themes are saved on this PC and can be shared as files."
+                                           TextWrapping="Wrap" Foreground="{ThemeResource HeliosMuted}" />
+                                <StackPanel x:Name="AppearanceRows" Spacing="14" />
+                                <ToggleSwitch x:Name="HintsToggle" Header="Show controller hints" Toggled="HintsChanged" />
+                                <ToggleSwitch x:Name="ClockToggle" Header="Show the clock" Toggled="ClockChanged" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Content="Export theme" Style="{StaticResource HeliosPill}" Click="ExportThemeClicked" />
+                                    <Button Content="Import theme" Style="{StaticResource HeliosPill}" Click="ImportThemeClicked" />
                                 </StackPanel>
                             </StackPanel>
                         </Border>

@@ -29,6 +29,7 @@ public sealed partial class Dashboard
             _store = await Task.Run(() => new LibraryStore(Path.Combine(_window.DataDirectory, "library.db")));
             _games = await Task.Run(_store.ReadGames);
             _ready = true;
+            LoadTheme();
             UpdateLibraryViews();
             if (_store.GetSetting("fullScreen") == "true" && !_window.IsFullScreen)
                 _window.SetFullScreen(true);
@@ -187,7 +188,7 @@ public sealed partial class Dashboard
             var scan = await Task.Run(() => WindowsGameLibrary.ScanAsync(ArtworkDirectory, allApps: true));
             if (_screen != Screen.Picker)
                 return;
-            WindowsPicker.ItemsSource = scan.Games.Select(game => new Tile(game)).ToArray();
+            WindowsPicker.ItemsSource = scan.Games.Select(game => new Tile(game, GridTileStyle)).ToArray();
             Status.Text = scan.Games.Count == 0 ? "No eligible apps found" : "Choose the installed title to add";
         }
         catch (Exception error) when (IsLocalError(error))

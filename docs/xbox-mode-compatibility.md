@@ -30,6 +30,17 @@ Choosing a home in Windows Settings writes these values, and so does the install
 | Leaving Helios in Xbox mode | The top-right button becomes **Desktop** and calls `SetGamingFullScreenExperience(false)`, so you don't end up in an empty session. Escape and F11 do not leave full screen in Xbox mode. |
 | Desktop sign-in | The opt-in startup task, **Settings → Start Helios at Windows sign-in**, opens Helios full screen. |
 
+## Staying light while a game runs
+
+As the Xbox mode home, Helios stays running for the whole session. Three seconds after another app or game takes the foreground, Helios:
+
+- stops its clock timer and controller polling
+- drops its cached artwork
+- switches to Windows efficiency mode (EcoQoS) at below-normal priority
+- releases its working set
+
+When Helios comes back to the front, it returns to normal priority straight away. On the development PC, the working set went from 193 MB in the foreground to 3 MB in the background, and back to 28 MB on return. Helios skips this while one of its own file pickers is open. It also honors **Settings → Accessibility → Visual effects → Animation effects**: with animations off, focus scaling, page transitions and backdrop crossfades switch instantly.
+
 ## Verification on the development PC
 
 On Windows 11 build 26300 with Developer Mode on, the registered development package appears in the `windows.gamingApp` app extension catalog alongside `Microsoft.GamingApp_8wekyb3d8bbwe!Microsoft.Xbox.App`. That catalog is the source of the **Choose home app** list. The Release build reaches the loaded dashboard in about 1.2 seconds from process start.
