@@ -3,38 +3,157 @@
     x:Class="Helios_Launcher.App"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:Helios_Launcher">
+    xmlns:local="using:Helios_Launcher"
+    RequestedTheme="Dark">
     <Application.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
             </ResourceDictionary.MergedDictionaries>
-            <SolidColorBrush x:Key="HeliosSelected" Color="#28D58B45" />
-            <SolidColorBrush x:Key="HeliosAccent" Color="#ECAF72" />
             <ResourceDictionary.ThemeDictionaries>
                 <ResourceDictionary x:Key="Dark">
-                    <SolidColorBrush x:Key="HeliosBase" Color="#13151C" />
-                    <SolidColorBrush x:Key="HeliosPanel" Color="#1C1F28" />
-                    <SolidColorBrush x:Key="HeliosArtwork" Color="#29232C" />
-                    <SolidColorBrush x:Key="HeliosOnAccent" Color="#211308" />
-                    <SolidColorBrush x:Key="SystemControlFocusVisualPrimaryBrush" Color="#FFCA87" />
+                    <SolidColorBrush x:Key="HeliosBase" Color="#0D0F15" />
+                    <SolidColorBrush x:Key="HeliosPanel" Color="#E6151820" />
+                    <SolidColorBrush x:Key="HeliosCard" Color="#B31A1E28" />
+                    <SolidColorBrush x:Key="HeliosChip" Color="#24FFFFFF" />
+                    <SolidColorBrush x:Key="HeliosHover" Color="#1AFFFFFF" />
+                    <SolidColorBrush x:Key="HeliosArtwork" Color="#232837" />
+                    <SolidColorBrush x:Key="HeliosAccent" Color="#FFB86B" />
+                    <SolidColorBrush x:Key="HeliosOnAccent" Color="#1E1208" />
+                    <SolidColorBrush x:Key="HeliosMuted" Color="#B3E9ECF5" />
+                    <SolidColorBrush x:Key="SystemControlFocusVisualPrimaryBrush" Color="#FFD7A3" />
+                    <SolidColorBrush x:Key="SystemControlFocusVisualSecondaryBrush" Color="#990D0F15" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="HeliosBase" Color="#F5F2EF" />
-                    <SolidColorBrush x:Key="HeliosPanel" Color="#FFFBF7" />
-                    <SolidColorBrush x:Key="HeliosArtwork" Color="#E8DACD" />
+                    <SolidColorBrush x:Key="HeliosBase" Color="#F3EFEA" />
+                    <SolidColorBrush x:Key="HeliosPanel" Color="#EEFFFBF7" />
+                    <SolidColorBrush x:Key="HeliosCard" Color="#CCFFFFFF" />
+                    <SolidColorBrush x:Key="HeliosChip" Color="#14000000" />
+                    <SolidColorBrush x:Key="HeliosHover" Color="#0F000000" />
+                    <SolidColorBrush x:Key="HeliosArtwork" Color="#E4D6C8" />
                     <SolidColorBrush x:Key="HeliosAccent" Color="#874714" />
                     <SolidColorBrush x:Key="HeliosOnAccent" Color="#FFFFFF" />
+                    <SolidColorBrush x:Key="HeliosMuted" Color="#B3201A14" />
                     <SolidColorBrush x:Key="SystemControlFocusVisualPrimaryBrush" Color="#874714" />
                 </ResourceDictionary>
                 <ResourceDictionary x:Key="HighContrast">
                     <SolidColorBrush x:Key="HeliosBase" Color="{ThemeResource SystemColorWindowColor}" />
                     <SolidColorBrush x:Key="HeliosPanel" Color="{ThemeResource SystemColorWindowColor}" />
+                    <SolidColorBrush x:Key="HeliosCard" Color="{ThemeResource SystemColorWindowColor}" />
+                    <SolidColorBrush x:Key="HeliosChip" Color="{ThemeResource SystemColorButtonFaceColor}" />
+                    <SolidColorBrush x:Key="HeliosHover" Color="{ThemeResource SystemColorHighlightColor}" />
                     <SolidColorBrush x:Key="HeliosArtwork" Color="{ThemeResource SystemColorWindowColor}" />
                     <SolidColorBrush x:Key="HeliosAccent" Color="{ThemeResource SystemColorHighlightColor}" />
                     <SolidColorBrush x:Key="HeliosOnAccent" Color="{ThemeResource SystemColorHighlightTextColor}" />
+                    <SolidColorBrush x:Key="HeliosMuted" Color="{ThemeResource SystemColorWindowTextColor}" />
                 </ResourceDictionary>
             </ResourceDictionary.ThemeDictionaries>
+
+            <!-- Rounded pill button used for tabs, chips and actions. Lean template: no per-state brush churn. -->
+            <Style x:Key="HeliosPill" TargetType="Button">
+                <Setter Property="Background" Value="{ThemeResource HeliosChip}" />
+                <Setter Property="Foreground" Value="{ThemeResource TextFillColorPrimaryBrush}" />
+                <Setter Property="BorderBrush" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="20,10" />
+                <Setter Property="MinHeight" Value="44" />
+                <Setter Property="CornerRadius" Value="22" />
+                <Setter Property="FontSize" Value="15" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="HorizontalContentAlignment" Value="Center" />
+                <Setter Property="VerticalContentAlignment" Value="Center" />
+                <Setter Property="UseSystemFocusVisuals" Value="True" />
+                <Setter Property="FocusVisualMargin" Value="-3" />
+                <Setter Property="FocusVisualPrimaryThickness" Value="2" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                                  BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="{TemplateBinding CornerRadius}">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <VisualState.Setters><Setter Target="Hover.Opacity" Value="1" /></VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <VisualState.Setters>
+                                                <Setter Target="Hover.Opacity" Value="1" />
+                                                <Setter Target="Presenter.Opacity" Value=".75" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled">
+                                            <VisualState.Setters><Setter Target="Presenter.Opacity" Value=".38" /></VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <Border x:Name="Hover" Background="{ThemeResource HeliosHover}" Opacity="0" />
+                                <ContentPresenter x:Name="Presenter" Margin="{TemplateBinding Padding}"
+                                                  Content="{TemplateBinding Content}" ContentTemplate="{TemplateBinding ContentTemplate}"
+                                                  Foreground="{TemplateBinding Foreground}" FontSize="{TemplateBinding FontSize}"
+                                                  FontWeight="{TemplateBinding FontWeight}"
+                                                  HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                                  VerticalAlignment="{TemplateBinding VerticalContentAlignment}" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="HeliosAccentPill" TargetType="Button" BasedOn="{StaticResource HeliosPill}">
+                <Setter Property="Background" Value="{ThemeResource HeliosAccent}" />
+                <Setter Property="Foreground" Value="{ThemeResource HeliosOnAccent}" />
+                <Setter Property="Padding" Value="30,11" />
+                <Setter Property="MinHeight" Value="50" />
+                <Setter Property="CornerRadius" Value="25" />
+                <Setter Property="FontSize" Value="17" />
+            </Style>
+            <Style x:Key="HeliosTab" TargetType="Button" BasedOn="{StaticResource HeliosPill}">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="Foreground" Value="{ThemeResource HeliosMuted}" />
+                <Setter Property="Padding" Value="18,8" />
+                <Setter Property="MinHeight" Value="40" />
+                <Setter Property="FontSize" Value="17" />
+            </Style>
+            <!-- Art-first game tile. Focus feedback is an implicit scale animation plus the system focus ring. -->
+            <Style x:Key="HeliosTile" TargetType="Button">
+                <Setter Property="Padding" Value="0" />
+                <Setter Property="CornerRadius" Value="12" />
+                <Setter Property="Background" Value="{ThemeResource HeliosArtwork}" />
+                <Setter Property="BorderBrush" Value="{ThemeResource HeliosAccent}" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="UseSystemFocusVisuals" Value="False" />
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Grid Background="{TemplateBinding Background}" CornerRadius="{TemplateBinding CornerRadius}">
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal" />
+                                        <VisualState x:Name="PointerOver">
+                                            <VisualState.Setters><Setter Target="Hover.Opacity" Value="1" /></VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Pressed">
+                                            <VisualState.Setters><Setter Target="Hover.Opacity" Value="1" /></VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="Disabled" />
+                                    </VisualStateGroup>
+                                </VisualStateManager.VisualStateGroups>
+                                <ContentPresenter Content="{TemplateBinding Content}" HorizontalContentAlignment="Stretch"
+                                                  VerticalContentAlignment="Stretch" />
+                                <Border x:Name="Hover" Background="{ThemeResource HeliosHover}" Opacity="0" />
+                                <!-- Accent ring for every focus source, including programmatic focus from the controller. -->
+                                <Border BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="{TemplateBinding BorderThickness}"
+                                        CornerRadius="{TemplateBinding CornerRadius}" />
+                            </Grid>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+            <Style x:Key="HeliosCardStyle" TargetType="Border">
+                <Setter Property="Background" Value="{ThemeResource HeliosCard}" />
+                <Setter Property="CornerRadius" Value="16" />
+                <Setter Property="Padding" Value="24,20" />
+            </Style>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -30,7 +30,7 @@ public sealed partial class Dashboard
             _games = await Task.Run(_store.ReadGames);
             _ready = true;
             UpdateLibraryViews();
-            if (_store.GetSetting("fullScreen") == "true")
+            if (_store.GetSetting("fullScreen") == "true" && !_window.IsFullScreen)
                 _window.SetFullScreen(true);
             await RefreshLibraryAsync();
         }
@@ -222,20 +222,25 @@ public sealed partial class Dashboard
 
     private void ShowAllGames()
     {
-        _filter = 0;
-        Filter.Content = "All games";
         Search.Text = string.Empty;
-        ShowLibrary();
+        SetFilter(LibraryFilter.All);
     }
 
     private void FavoriteClicked(object sender, RoutedEventArgs args)
     {
-        if (_selected is not { } game || _store is null)
+        if (_selected is { } game)
+            ToggleFavorite(game);
+    }
+
+    private void ToggleFavorite(GameEntry game)
+    {
+        if (_store is null)
             return;
         try
         {
             _store.SetFavorite(game.Id, !game.IsFavorite);
             ReloadGames();
+            Status.Text = game.IsFavorite ? $"{game.Title} removed from favorites" : $"{game.Title} added to favorites";
         }
         catch (SqliteException error)
         {

@@ -1,3 +1,4 @@
+using Helios.Library;
 using Helios_Launcher.Windows;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Automation.Peers;
@@ -20,13 +21,14 @@ public sealed partial class Dashboard
         }
         if (args.Key == VirtualKey.Escape)
         {
-            if (_screen == Screen.Home && _window.IsFullScreen)
+            // In Xbox mode Helios stays full screen; Escape only navigates back.
+            if (_screen == Screen.Home && _window.IsFullScreen && XboxMode.IsActive() != true)
                 ApplyFullScreen(false);
             else
                 Back();
             args.Handled = true;
         }
-        else if (args.Key == VirtualKey.F11)
+        else if (args.Key == VirtualKey.F11 && XboxMode.IsActive() != true)
         {
             ApplyFullScreen(!_window.IsFullScreen);
             args.Handled = true;
@@ -46,6 +48,27 @@ public sealed partial class Dashboard
             int current = _screen switch { Screen.Home => 0, Screen.Settings => 2, _ => 1 };
             Navigate(tabs[(current + (action == ControllerAction.NextTab ? 1 : 2)) % tabs.Length]);
             return;
+        }
+        switch (action)
+        {
+            case ControllerAction.Menu:
+                Navigate(Screen.Settings);
+                return;
+            case ControllerAction.Search:
+                if (_screen != Screen.Library)
+                    Navigate(Screen.Library);
+                DispatcherQueue.TryEnqueue(ShowKeyboard);
+                return;
+            case ControllerAction.Favorite:
+                ToggleFavoriteFromFocus();
+                return;
+            case ControllerAction.PreviousFilter or ControllerAction.NextFilter:
+                if (_screen == Screen.Library)
+                {
+                    SetFilter(LibraryViews.Cycle(_filter, action == ControllerAction.NextFilter ? 1 : -1));
+                    DispatcherQueue.TryEnqueue(RestoreFocus);
+                }
+                return;
         }
         if (action == ControllerAction.Confirm)
         {
@@ -92,9 +115,17 @@ public sealed partial class Dashboard
         if (SearchKeyboard.ItemsSource is null)
         {
             string[] keys = [.."ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789".Select(letter => letter.ToString()), "Space", "⌫"];
+            var style = (Style)Application.Current.Resources["HeliosPill"];
             SearchKeyboard.ItemsSource = keys.Select(key =>
             {
-                var button = new Button { Content = key, MinHeight = 38, MinWidth = 42, HorizontalAlignment = HorizontalAlignment.Stretch };
+                var button = new Button
+                {
+                    Content = key, Style = style, MinHeight = 46, Padding = new Thickness(0), CornerRadius = new CornerRadius(12),
+                    HorizontalAlignment = HorizontalAlignment.Stretch,
+                    VerticalAlignment = VerticalAlignment.Stretch,
+                };
+                if (key == "⌫")
+                    Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(button, "Delete");
                 button.Click += (_, _) =>
                 {
                     Search.Text = key switch
@@ -113,6 +144,14 @@ public sealed partial class Dashboard
             UpdateLayout();
             (SearchKeyboard.GetOrCreateElement(0) as Button)?.Focus(FocusState.Programmatic);
         });
+    }
+
+    private void ToggleFavoriteFromFocus()
+    {
+        GameEntry? game = FocusManager.GetFocusedElement(XamlRoot) is Button { Tag: GameEntry focused } ? focused
+            : _screen == Screen.Details ? _selected : null;
+        if (game is not null)
+            ToggleFavorite(game);
     }
 
     private void SearchKeysClicked(object sender, RoutedEventArgs args) => ShowKeyboard();
