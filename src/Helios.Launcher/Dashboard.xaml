@@ -32,6 +32,81 @@
                 </Grid>
             </Button>
         </DataTemplate>
+
+        <!-- Startup: the sun mark blooms, two light rings ripple out and the wordmark rises. About 1.4 s. -->
+        <Storyboard x:Key="IntroIn">
+            <DoubleAnimation Storyboard.TargetName="IntroGlow" Storyboard.TargetProperty="Opacity" From="0" To=".95" Duration="0:0:0.8">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="IntroGlowScale" Storyboard.TargetProperty="ScaleX" From=".35" To="1" Duration="0:0:1.1">
+                <DoubleAnimation.EasingFunction><ExponentialEase EasingMode="EaseOut" Exponent="5" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="IntroGlowScale" Storyboard.TargetProperty="ScaleY" From=".35" To="1" Duration="0:0:1.1">
+                <DoubleAnimation.EasingFunction><ExponentialEase EasingMode="EaseOut" Exponent="5" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+
+            <DoubleAnimation Storyboard.TargetName="IntroEmblem" Storyboard.TargetProperty="Opacity" From="0" To="1" BeginTime="0:0:0.1" Duration="0:0:0.3" />
+            <DoubleAnimation Storyboard.TargetName="IntroEmblemScale" Storyboard.TargetProperty="ScaleX" From=".2" To="1" BeginTime="0:0:0.1" Duration="0:0:0.75">
+                <DoubleAnimation.EasingFunction><BackEase EasingMode="EaseOut" Amplitude=".45" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="IntroEmblemScale" Storyboard.TargetProperty="ScaleY" From=".2" To="1" BeginTime="0:0:0.1" Duration="0:0:0.75">
+                <DoubleAnimation.EasingFunction><BackEase EasingMode="EaseOut" Amplitude=".45" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="IntroStarSpin" Storyboard.TargetProperty="Angle" From="-150" To="0" BeginTime="0:0:0.1" Duration="0:0:1">
+                <DoubleAnimation.EasingFunction><ExponentialEase EasingMode="EaseOut" Exponent="6" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+
+            <DoubleAnimation Storyboard.TargetName="IntroRing" Storyboard.TargetProperty="Opacity" From=".9" To="0" BeginTime="0:0:0.35" Duration="0:0:1" />
+            <DoubleAnimation Storyboard.TargetName="IntroRingScale" Storyboard.TargetProperty="ScaleX" From=".9" To="2.7" BeginTime="0:0:0.35" Duration="0:0:1">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="IntroRingScale" Storyboard.TargetProperty="ScaleY" From=".9" To="2.7" BeginTime="0:0:0.35" Duration="0:0:1">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="IntroRing2" Storyboard.TargetProperty="Opacity" From=".6" To="0" BeginTime="0:0:0.6" Duration="0:0:1.1" />
+            <DoubleAnimation Storyboard.TargetName="IntroRing2Scale" Storyboard.TargetProperty="ScaleX" From=".9" To="3.4" BeginTime="0:0:0.6" Duration="0:0:1.1">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="IntroRing2Scale" Storyboard.TargetProperty="ScaleY" From=".9" To="3.4" BeginTime="0:0:0.6" Duration="0:0:1.1">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+
+            <DoubleAnimation Storyboard.TargetName="IntroWordmark" Storyboard.TargetProperty="Opacity" From="0" To="1" BeginTime="0:0:0.55" Duration="0:0:0.5" />
+            <DoubleAnimation Storyboard.TargetName="IntroWordmarkShift" Storyboard.TargetProperty="Y" From="22" To="0" BeginTime="0:0:0.55" Duration="0:0:0.6">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseOut" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="IntroLineScale" Storyboard.TargetProperty="ScaleX" From="0" To="1" BeginTime="0:0:0.8" Duration="0:0:0.6">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
+
+        <!-- While the library is still loading, the glow breathes so the screen never looks frozen. -->
+        <Storyboard x:Key="IntroWait" RepeatBehavior="Forever" AutoReverse="True">
+            <DoubleAnimation Storyboard.TargetName="IntroGlow" Storyboard.TargetProperty="Opacity" From=".95" To=".5" Duration="0:0:1.1">
+                <DoubleAnimation.EasingFunction><SineEase EasingMode="EaseInOut" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="IntroStatus" Storyboard.TargetProperty="Opacity" From=".75" To=".35" Duration="0:0:1.1" />
+        </Storyboard>
+
+        <!-- Hand-off: the intro lifts away while the dashboard settles into place. -->
+        <Storyboard x:Key="IntroOut">
+            <DoubleAnimation Storyboard.TargetName="IntroOverlay" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.45">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="IntroZoom" Storyboard.TargetProperty="ScaleX" To="1.08" Duration="0:0:0.45">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="IntroZoom" Storyboard.TargetProperty="ScaleY" To="1.08" Duration="0:0:0.45">
+                <DoubleAnimation.EasingFunction><CubicEase EasingMode="EaseIn" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="ShellContent" Storyboard.TargetProperty="Opacity" From="0" To="1" BeginTime="0:0:0.12" Duration="0:0:0.5" />
+            <DoubleAnimation Storyboard.TargetName="ShellZoom" Storyboard.TargetProperty="ScaleX" From=".965" To="1" BeginTime="0:0:0.12" Duration="0:0:0.6">
+                <DoubleAnimation.EasingFunction><ExponentialEase EasingMode="EaseOut" Exponent="5" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+            <DoubleAnimation Storyboard.TargetName="ShellZoom" Storyboard.TargetProperty="ScaleY" From=".965" To="1" BeginTime="0:0:0.12" Duration="0:0:0.6">
+                <DoubleAnimation.EasingFunction><ExponentialEase EasingMode="EaseOut" Exponent="5" /></DoubleAnimation.EasingFunction>
+            </DoubleAnimation>
+        </Storyboard>
     </Page.Resources>
 
     <Grid x:Name="Root" Background="{ThemeResource HeliosBase}" PreviewKeyDown="RootKeyDown" SizeChanged="RootResized"
@@ -64,7 +139,8 @@
             </Rectangle.Fill>
         </Rectangle>
 
-        <Grid>
+        <Grid x:Name="ShellContent" RenderTransformOrigin=".5,.5">
+            <Grid.RenderTransform><ScaleTransform x:Name="ShellZoom" /></Grid.RenderTransform>
             <Grid.RowDefinitions><RowDefinition Height="Auto" /><RowDefinition Height="*" /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
 
             <!-- Top bar -->
@@ -90,7 +166,15 @@
                         <TextBlock Text="XBOX MODE" FontSize="11" FontWeight="SemiBold" CharacterSpacing="120"
                                    Foreground="{ThemeResource HeliosAccent}" />
                     </Border>
+                    <StackPanel x:Name="Battery" Orientation="Horizontal" Spacing="6" VerticalAlignment="Center" Visibility="Collapsed">
+                        <FontIcon x:Name="BatteryGlyph" FontSize="18" />
+                        <TextBlock x:Name="BatteryText" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    </StackPanel>
                     <TextBlock x:Name="Clock" FontSize="17" FontWeight="SemiBold" VerticalAlignment="Center" />
+                    <Button x:Name="PowerButton" Style="{StaticResource HeliosPill}" Padding="12,8" MinHeight="40" CornerRadius="20"
+                            Click="PowerClicked" AutomationProperties.Name="Power options">
+                        <FontIcon Glyph="&#xE7E8;" FontSize="14" />
+                    </Button>
                     <Button x:Name="ExitButton" Style="{StaticResource HeliosPill}" Padding="12,8" MinHeight="40" CornerRadius="20"
                             Click="ExitClicked" AutomationProperties.Name="Exit Helios">
                         <StackPanel Orientation="Horizontal" Spacing="8">
@@ -282,6 +366,8 @@
                             <StackPanel Spacing="10">
                                 <TextBlock Text="Display and startup" FontSize="22" FontWeight="SemiBold" />
                                 <ToggleSwitch x:Name="FullScreenToggle" Header="Full screen on the desktop" Toggled="FullScreenChanged" />
+                                <TextBlock x:Name="FullScreenMessage" TextWrapping="Wrap" Foreground="{ThemeResource HeliosMuted}" Visibility="Collapsed"
+                                           Text="Xbox mode keeps Helios full screen. This setting applies when you return to the desktop." />
                                 <ToggleSwitch x:Name="StartupToggle" Header="Start Helios at Windows sign-in" Toggled="StartupChanged" />
                                 <TextBlock x:Name="StartupMessage" TextWrapping="Wrap" Foreground="{ThemeResource HeliosMuted}" />
                                 <Button Content="Windows startup settings" Style="{StaticResource HeliosPill}" Click="OpenStartupClicked" />
@@ -292,7 +378,11 @@
                             <StackPanel Spacing="10">
                                 <TextBlock Text="About" FontSize="22" FontWeight="SemiBold" />
                                 <TextBlock x:Name="AboutText" TextWrapping="Wrap" Foreground="{ThemeResource HeliosMuted}" />
-                                <Button Content="Exit Helios" Style="{StaticResource HeliosPill}" Click="CloseClicked" />
+                                <TextBlock x:Name="RecoveryText" TextWrapping="Wrap" Foreground="{ThemeResource HeliosMuted}" Visibility="Collapsed" />
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <Button Content="Power options" Style="{StaticResource HeliosPill}" Click="PowerClicked" />
+                                    <Button x:Name="AboutExitButton" Content="Exit Helios" Style="{StaticResource HeliosPill}" Click="AboutExitClicked" />
+                                </StackPanel>
                             </StackPanel>
                         </Border>
                     </StackPanel>
@@ -324,6 +414,67 @@
                            AutomationProperties.LiveSetting="Polite" Foreground="{ThemeResource HeliosMuted}" />
                 <StackPanel x:Name="Hints" Grid.Column="1" Orientation="Horizontal" Spacing="18" VerticalAlignment="Center" />
             </Grid>
+        </Grid>
+
+        <!-- Power and exit menu. Modal: controller focus stays inside while it is open. -->
+        <Grid x:Name="PowerOverlay" Visibility="Collapsed" Background="#D907080C" TabFocusNavigation="Cycle"
+              XYFocusKeyboardNavigation="Enabled" Tapped="PowerOverlayTapped">
+            <Border x:Name="PowerCard" Style="{StaticResource HeliosCardStyle}" Background="{ThemeResource HeliosPanel}"
+                    HorizontalAlignment="Center" VerticalAlignment="Center" Width="420" Margin="16" Padding="28,24"
+                    Tapped="PowerCardTapped">
+                <StackPanel Spacing="10">
+                    <TextBlock x:Name="PowerTitle" Text="Power" FontSize="28" FontWeight="Bold" TextWrapping="Wrap" />
+                    <TextBlock x:Name="PowerMessage" TextWrapping="Wrap" Foreground="{ThemeResource HeliosMuted}" Visibility="Collapsed" />
+                    <StackPanel x:Name="PowerChoices" Spacing="8" Margin="0,6,0,0" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Startup intro, also the loading screen. Collapsed (and its storyboards stopped) once the dashboard is ready. -->
+        <Grid x:Name="IntroOverlay" Background="{ThemeResource HeliosBase}" RenderTransformOrigin=".5,.5"
+              AutomationProperties.Name="Helios is starting">
+            <Grid.RenderTransform><ScaleTransform x:Name="IntroZoom" /></Grid.RenderTransform>
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="0">
+                <Grid Width="300" Height="300" HorizontalAlignment="Center">
+                    <Ellipse x:Name="IntroGlow" Width="300" Height="300" Opacity="0" RenderTransformOrigin=".5,.5">
+                        <Ellipse.RenderTransform><ScaleTransform x:Name="IntroGlowScale" /></Ellipse.RenderTransform>
+                        <Ellipse.Fill>
+                            <RadialGradientBrush>
+                                <GradientStop x:Name="IntroGlowInner" Color="#66FFB86B" Offset="0" />
+                                <GradientStop x:Name="IntroGlowMid" Color="#1FFFB86B" Offset=".55" />
+                                <GradientStop x:Name="IntroGlowOuter" Color="#00FFB86B" Offset="1" />
+                            </RadialGradientBrush>
+                        </Ellipse.Fill>
+                    </Ellipse>
+                    <Ellipse x:Name="IntroRing" Width="116" Height="116" Opacity="0" StrokeThickness="2"
+                             Stroke="{ThemeResource HeliosAccent}" RenderTransformOrigin=".5,.5">
+                        <Ellipse.RenderTransform><ScaleTransform x:Name="IntroRingScale" /></Ellipse.RenderTransform>
+                    </Ellipse>
+                    <Ellipse x:Name="IntroRing2" Width="116" Height="116" Opacity="0" StrokeThickness="1"
+                             Stroke="{ThemeResource HeliosAccent}" RenderTransformOrigin=".5,.5">
+                        <Ellipse.RenderTransform><ScaleTransform x:Name="IntroRing2Scale" /></Ellipse.RenderTransform>
+                    </Ellipse>
+                    <Border x:Name="IntroEmblem" Width="112" Height="112" CornerRadius="56" Opacity="0"
+                            Background="{ThemeResource HeliosAccent}" RenderTransformOrigin=".5,.5">
+                        <Border.RenderTransform><ScaleTransform x:Name="IntroEmblemScale" /></Border.RenderTransform>
+                        <TextBlock Text="✦" FontSize="60" FontWeight="Bold" Foreground="{ThemeResource HeliosOnAccent}"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center" Margin="0,-4,0,0" RenderTransformOrigin=".5,.55">
+                            <TextBlock.RenderTransform><RotateTransform x:Name="IntroStarSpin" /></TextBlock.RenderTransform>
+                        </TextBlock>
+                    </Border>
+                </Grid>
+                <StackPanel x:Name="IntroWordmark" Opacity="0" Spacing="14" Margin="0,-28,0,0" HorizontalAlignment="Center">
+                    <StackPanel.RenderTransform><TranslateTransform x:Name="IntroWordmarkShift" /></StackPanel.RenderTransform>
+                    <TextBlock Text="HELIOS" FontSize="34" FontWeight="Bold" CharacterSpacing="520" HorizontalAlignment="Center"
+                               Margin="18,0,0,0" />
+                    <Rectangle Height="2" Width="168" RadiusX="1" RadiusY="1" Fill="{ThemeResource HeliosAccent}"
+                               HorizontalAlignment="Center" RenderTransformOrigin=".5,.5">
+                        <Rectangle.RenderTransform><ScaleTransform x:Name="IntroLineScale" ScaleX="0" /></Rectangle.RenderTransform>
+                    </Rectangle>
+                </StackPanel>
+            </StackPanel>
+            <TextBlock x:Name="IntroStatus" Text="Getting your games ready" Opacity="0" FontSize="15"
+                       Foreground="{ThemeResource HeliosMuted}" HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,64" />
         </Grid>
     </Grid>
 </Page>

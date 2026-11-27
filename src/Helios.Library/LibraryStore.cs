@@ -25,6 +25,71 @@ public sealed class LibraryStore
         command.ExecuteNonQuery();
     }
 
+    /// <summary>
+    /// Opens the library and proves it can be read. A database that SQLite reports as corrupt or not a database is
+    /// moved aside (with its WAL files) and replaced by an empty library, so the Xbox mode home never stays broken.
+    /// </summary>
+    /// <returns>The store, and the path of the moved-aside file when recovery happened.</returns>
+    public static (LibraryStore Store, string? Quarantined) OpenOrRecover(string path)
+    {
+        try
+        {
+            var store = new LibraryStore(path);
+            store.ReadGames();
+            store.GetSetting("theme");
+            return (store, null);
+        }
+        catch (SqliteException error) when (error.SqliteErrorCode is SqliteCorrupt or SqliteNotADatabase)
+        {
+            SqliteConnection.ClearAllPools();
+            string quarantined = $"{path}.corrupt-{DateTime.UtcNow:yyyyMMddHHmmss}";
+            File.Move(path, quarantined, overwrite: true);
+            foreach (string suffix in (string[])["-wal", "-shm"])
+            {
+                if (File.Exists(path + suffix))
+                    File.Move(path + suffix, quarantined + suffix, overwrite: true);
+            }
+            return (new LibraryStore(path), quarantined);
+        }
+    }
+
+    /// <summary>
+    /// Reads settings without creating or migrating the database, so the window can pick its mode and accent before
+    /// the first frame. Missing, locked or damaged files return no values.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> PeekSettings(string path, params string[] keys)
+    {
+        var values = new Dictionary<string, string>(StringComparer.Ordinal);
+        if (keys.Length == 0 || !File.Exists(path))
+            return values;
+        try
+        {
+            string connection = new SqliteConnectionStringBuilder
+            {
+                DataSource = path, Mode = SqliteOpenMode.ReadOnly, Pooling = false, DefaultTimeout = 1,
+            }.ToString();
+            using var db = new SqliteConnection(connection);
+            db.Open();
+            using var command = db.CreateCommand();
+            command.CommandText = "SELECT value FROM settings WHERE key = $key";
+            var parameter = command.Parameters.Add("$key", SqliteType.Text);
+            foreach (string key in keys)
+            {
+                parameter.Value = key;
+                if (command.ExecuteScalar() is string value)
+                    values[key] = value;
+            }
+        }
+        catch (SqliteException)
+        {
+            // OpenOrRecover deals with damaged files once the library loads.
+        }
+        return values;
+    }
+
+    private const int SqliteCorrupt = 11;
+    private const int SqliteNotADatabase = 26;
+
     public IReadOnlyList<GameEntry> ReadGames()
     {
         using var connection = Open();

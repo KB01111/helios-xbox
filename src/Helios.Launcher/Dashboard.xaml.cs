@@ -38,10 +38,15 @@ public sealed partial class Dashboard : Page
     private LibraryFilter _filter;
     private readonly Dictionary<LibraryFilter, Button> _chips = [];
 
-    internal Dashboard(MainWindow window)
+    private readonly LaunchRequest _launch;
+
+    internal Dashboard(MainWindow window, LaunchRequest launch, ConsoleTheme? savedTheme, bool desktopFullScreen)
     {
         _window = window;
+        _launch = launch;
+        DesktopFullScreenPreference = desktopFullScreen;
         InitializeComponent();
+        PrepareIntro();
         _controller = new Controller(DispatcherQueue);
         _controller.ActionReceived += HandleController;
         _clock = DispatcherQueue.CreateTimer();
@@ -63,7 +68,7 @@ public sealed partial class Dashboard : Page
         }
         BuildFilterChips();
         BuildAppearance();
-        ApplyTheme(ConsoleTheme.Default, persist: false);
+        ApplyTheme(savedTheme ?? ConsoleTheme.Default, persist: false);
         Loaded += LoadLibrary;
         _window.Activated += WindowActivated;
         _window.XboxModeChanged += XboxModeChanged;
@@ -72,6 +77,7 @@ public sealed partial class Dashboard : Page
             _controller.SetActive(false);
             _clock.Stop();
         };
+        InitializeShell();
         UpdateClock();
         _clock.Start();
         UpdateXboxChrome();
@@ -80,6 +86,7 @@ public sealed partial class Dashboard : Page
     private void WindowActivated(object sender, WindowActivatedEventArgs args)
     {
         bool active = args.WindowActivationState != WindowActivationState.Deactivated;
+        _windowActive = active;
         _controller.SetActive(active);
         if (!active)
         {
@@ -93,6 +100,7 @@ public sealed partial class Dashboard : Page
             _clock.Start();
         }
         UpdateClock();
+        UpdateBattery();
         UpdateXboxChrome();
         if (_screen == Screen.Settings)
             _ = RefreshStartupAsync();
@@ -111,10 +119,9 @@ public sealed partial class Dashboard : Page
     private void XboxModeChanged()
     {
         UpdateXboxChrome();
-        if (XboxMode.IsActive() == true)
-            _window.SetFullScreen(true);
-        else
-            _window.SetFullScreen(_store?.GetSetting("fullScreen") == "true");
+        _window.SetFullScreen(XboxMode.IsActive() == true || DesktopFullScreenPreference);
+        if (XboxMode.IsActive() != true && PowerMenuOpen)
+            ClosePowerMenu(); // "Return to desktop" choices no longer apply.
         if (_screen == Screen.Settings)
             _ = RefreshStartupAsync();
     }
@@ -127,6 +134,7 @@ public sealed partial class Dashboard : Page
         ExitGlyph.Glyph = active ? "\uE7F4" : "\uE8BB";
         ExitLabel.Visibility = Visible(active);
         AutomationPropertiesHelper.SetName(ExitButton, active ? "Return to the Windows desktop" : "Exit Helios");
+        AboutExitButton.Content = active ? "Close Helios" : "Exit Helios";
     }
 
     private void UpdateClock() => Clock.Text = DateTime.Now.ToString("t");
@@ -139,9 +147,11 @@ public sealed partial class Dashboard : Page
         Body.Padding = new Thickness(gutter, 8, gutter, 24);
         Footer.Padding = new Thickness(gutter, 8, gutter, narrow ? 10 : 16);
         Brand.Visibility = Visible(!narrow);
+        PowerCard.Width = Math.Min(420, Math.Max(280, args.NewSize.Width - 32));
         // Keep the hero and the first shelf on screen together, from handhelds (800p) to TVs.
         _size = args.NewSize;
         ApplyLayoutMetrics();
+        UpdateBattery();
         // On short screens (handhelds) the backdrop already shows the art, so keep Play above the fold.
         _compact = args.NewSize.Height < 820;
         DetailsArtFrame.Visibility = Visible(!_compact && DetailsImage.Source is not null);
@@ -207,6 +217,11 @@ public sealed partial class Dashboard : Page
 
     private void RestoreFocus()
     {
+        if (PowerMenuOpen)
+        {
+            FocusPowerMenu();
+            return;
+        }
         if (_returnFocusId is not null && _screen is Screen.Home or Screen.Library)
         {
             UpdateLayout();
@@ -412,7 +427,11 @@ public sealed partial class Dashboard : Page
 
     private void Back()
     {
-        if (KeyboardPane.Visibility == Visibility.Visible)
+        if (PowerMenuOpen)
+        {
+            ClosePowerMenu();
+        }
+        else if (KeyboardPane.Visibility == Visibility.Visible)
         {
             KeyboardPane.Visibility = Visibility.Collapsed;
             SearchKeys.Focus(FocusState.Programmatic);
@@ -434,9 +453,9 @@ public sealed partial class Dashboard : Page
 
     private void UpdateHints()
     {
-        (string Button, string Label)[] hints = _screen switch
+        (string Button, string Label)[] hints = PowerMenuOpen ? [("A", "Select"), ("B", "Close")] : _screen switch
         {
-            Screen.Home => [("A", "Select"), ("Y", "Favorite"), ("LB RB", "Tabs")],
+            Screen.Home => [("A", "Select"), ("X", "Search"), ("Y", "Favorite"), ("LB RB", "Tabs"), ("View", "Power")],
             Screen.Library => [("A", "Select"), ("B", "Back"), ("X", "Search"), ("Y", "Favorite"), ("LT RT", "Filter")],
             Screen.Details => [("A", "Select"), ("B", "Back"), ("Y", "Favorite")],
             _ => [("A", "Select"), ("B", "Back"), ("LB RB", "Tabs")],
@@ -490,7 +509,6 @@ public sealed partial class Dashboard : Page
     private void LibraryClicked(object sender, RoutedEventArgs args) => Navigate(Screen.Library);
     private void SettingsClicked(object sender, RoutedEventArgs args) => Navigate(Screen.Settings);
     private void BackClicked(object sender, RoutedEventArgs args) => Back();
-    private void CloseClicked(object sender, RoutedEventArgs args) => _window.Close();
     private void SearchChanged(object sender, TextChangedEventArgs args) => ShowLibrary();
     private void HeroDetailsClicked(object sender, RoutedEventArgs args)
     {
@@ -498,15 +516,22 @@ public sealed partial class Dashboard : Page
             OpenDetails(game);
     }
 
+    /// <summary>Header button: Exit on the desktop, Desktop in Xbox mode (closing the home would leave an empty session).</summary>
     private void ExitClicked(object sender, RoutedEventArgs args)
     {
         if (XboxMode.IsActive() != true)
-        {
-            _window.Close();
-            return;
-        }
-        if (!XboxMode.TrySet(false))
-            Status.Text = "Windows did not leave Xbox mode. Use Game Bar or Task View to reach the desktop.";
+            _window.CloseForReal();
+        else
+            ReturnToDesktop();
+    }
+
+    /// <summary>Settings > About: in Xbox mode, closing Helios needs confirmation.</summary>
+    private void AboutExitClicked(object sender, RoutedEventArgs args)
+    {
+        if (XboxMode.IsActive() != true)
+            _window.CloseForReal();
+        else
+            OpenPowerMenu(fromClose: true);
     }
 }
 
